@@ -12,12 +12,11 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Styling (CSS for clean cards, badges, and layout)
+# Custom Styling
 st.markdown("""
 <style>
     .stApp { background-color: #f8f9fa; }
     
-    /* Deal & Sales Card Styling */
     .deal-card {
         background-color: #ffffff;
         padding: 18px 22px;
@@ -93,6 +92,15 @@ if 'scanned_postcode' not in st.session_state:
 def natural_sort_key(s):
     return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s)]
 
+# Mapping for Land Registry short codes to human readable property types
+PROPERTY_TYPE_MAP = {
+    "D": "Detached",
+    "S": "Semi-Detached",
+    "T": "Terraced",
+    "F": "Flat / Maisonette",
+    "O": "Other Residential"
+}
+
 # Recursive JSON cleaner to strip away nested lists/dicts from Land Registry RDF output
 def extract_clean_text(val, fallback="Residential"):
     while isinstance(val, list) and len(val) > 0:
@@ -105,7 +113,11 @@ def extract_clean_text(val, fallback="Residential"):
     elif isinstance(val, str):
         if '/' in val:
             val = val.split('/')[-1]
-        return val.strip()
+        val = val.strip()
+        # Check against property type lookup map
+        if val in PROPERTY_TYPE_MAP:
+            return PROPERTY_TYPE_MAP[val]
+        return val
     return fallback
 
 # -------------------------------------------------------------------
@@ -404,7 +416,7 @@ if 'active_address' in st.session_state:
             st.write(f"☀️ **Solar Potential:** High (Suitable for 3.8 kWp array)")
 
     # ===================================================================
-    # TAB 3: LAND REGISTRY SALES HISTORY (PARSED CARDS WITH FULL DATES)
+    # TAB 3: LAND REGISTRY SALES HISTORY (PARSED CARDS WITH PROPERTY TYPE)
     # ===================================================================
     with tab_sales:
         st.subheader("🏠 HM Land Registry Sold Price History")
@@ -436,7 +448,6 @@ if 'active_address' in st.session_state:
             
             # Rendering individual custom visual cards for each property sale
             for _, row in df_sales.iterrows():
-                # Formatted Full UK Date (e.g. 22 Aug 2024)
                 if pd.notnull(row['Date_Parsed']):
                     formatted_date = row['Date_Parsed'].strftime("%d %b %Y")
                 else:
