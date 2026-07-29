@@ -93,19 +93,19 @@ if 'scanned_postcode' not in st.session_state:
 def natural_sort_key(s):
     return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s)]
 
-# Clean extractor for RDF JSON structures returned by Land Registry
+# Recursive JSON cleaner to strip away nested lists/dicts from Land Registry RDF output
 def extract_clean_text(val, fallback="Residential"):
-    if isinstance(val, list) and len(val) > 0:
+    while isinstance(val, list) and len(val) > 0:
         val = val[0]
     if isinstance(val, dict):
         if '_Value' in val:
-            return str(val['_Value'])
+            return extract_clean_text(val['_Value'], fallback)
         if 'label' in val:
-            return str(val['label'])
+            return extract_clean_text(val['label'], fallback)
     elif isinstance(val, str):
         if '/' in val:
-            return val.split('/')[-1]
-        return val
+            val = val.split('/')[-1]
+        return val.strip()
     return fallback
 
 # -------------------------------------------------------------------
@@ -169,19 +169,18 @@ def fetch_land_registry_sales(postcode):
                 raw_tenure = extract_clean_text(item.get("estateType", {}), "Freehold")
                 
                 raw_date = item.get("transactionDate", "")
-                clean_date = raw_date[:10] if isinstance(raw_date, str) else ""
                 
                 records.append({
                     "Address": full_address,
                     "Price": int(item.get("pricePaid", 0)),
-                    "Date": clean_date,
+                    "Raw_Date": raw_date,
                     "Type": str(raw_type).replace("-", " ").title(),
                     "Tenure": str(raw_tenure).replace("-", " ").title()
                 })
             
             df = pd.DataFrame(records)
             if not df.empty:
-                df['Date_Parsed'] = pd.to_datetime(df['Date'], errors='coerce')
+                df['Date_Parsed'] = pd.to_datetime(df['Raw_Date'], errors='coerce')
                 df = df.sort_values(by="Date_Parsed", ascending=False)
             return df
     except Exception as e:
@@ -405,7 +404,7 @@ if 'active_address' in st.session_state:
             st.write(f"☀️ **Solar Potential:** High (Suitable for 3.8 kWp array)")
 
     # ===================================================================
-    # TAB 3: LAND REGISTRY SALES HISTORY (CUSTOM HTML CARDS)
+    # TAB 3: LAND REGISTRY SALES HISTORY (PARSED CARDS WITH FULL DATES)
     # ===================================================================
     with tab_sales:
         st.subheader("🏠 HM Land Registry Sold Price History")
@@ -437,18 +436,21 @@ if 'active_address' in st.session_state:
             
             # Rendering individual custom visual cards for each property sale
             for _, row in df_sales.iterrows():
-                # Formatted UK Date
-                formatted_date = row['Date_Parsed'].strftime("%d %b %Y") if pd.notnull(row['Date_Parsed']) else row['Date']
+                # Formatted Full UK Date (e.g. 22 Aug 2024)
+                if pd.notnull(row['Date_Parsed']):
+                    formatted_date = row['Date_Parsed'].strftime("%d %b %Y")
+                else:
+                    formatted_date = str(row['Raw_Date'])[:10]
                 
                 st.markdown(f"""
                 <div class="sales-card">
                     <div>
                         <div style="font-size: 1.05rem; font-weight: 700; color: #1e293b;">{row['Address']}</div>
-                        <div style="margin-top: 6px;">
+                        <div style="margin-top: 8px;">
                             <span class="badge badge-type">🏠 {row['Type']}</span>
                             <span class="badge badge-tenure">📜 {row['Tenure']}</span>
-                            <span style="font-size: 0.85rem; color: #64748b; margin-left: 8px;">🗓️ Sold: {formatted_date}</span>
                         </div>
+                        <div style="font-size: 0.85rem; color: #64748b; margin-top: 8px;">🗓️ Sold: {formatted_date}</div>
                     </div>
                     <div style="text-align: right;">
                         <div style="font-size: 1.35rem; font-weight: 800; color: #16a34a;">£{row['Price']:,}</div>
