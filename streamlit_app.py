@@ -50,6 +50,17 @@ st.markdown("""
     .deal-title { font-size: 1.1rem; font-weight: 700; color: #1e293b; }
     .deal-price { font-size: 1.4rem; font-weight: 800; color: #16a34a; }
     
+    /* Prevent metric label truncation/ellipsis */
+    [data-testid="stMetricLabel"] {
+        white-space: normal !important;
+        overflow: visible !important;
+        text-overflow: unset !important;
+        font-size: 0.9rem !important;
+    }
+    [data-testid="stMetricValue"] {
+        font-size: 1.8rem !important;
+    }
+
     /* Badges */
     .badge {
         display: inline-block; padding: 4px 10px; border-radius: 6px;
@@ -665,11 +676,11 @@ if 'active_address' in st.session_state:
 
         col_c1, col_c2, col_c3 = st.columns(3)
         with col_c1:
-            st.metric("Monthly Recorded Incidents", "14 crimes", delta="-4% vs regional avg")
+            st.metric("Monthly Incidents", "14 crimes", delta="-4% vs regional avg")
         with col_c2:
-            st.metric("Primary Category", "Anti-Social Behaviour", delta="42% of local reports")
+            st.metric("Primary Crime Type", "Anti-Social Behaviour", delta="42% of local reports")
         with col_c3:
-            st.metric("Neighborhood Safety Index", "Above Average", delta="Low risk profile")
+            st.metric("Safety Index", "Above Average", delta="Low risk profile")
 
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("#### 📊 Recent Incident Breakdown (Last Reported Month)")
