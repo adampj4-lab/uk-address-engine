@@ -77,7 +77,6 @@ st.markdown("""
         margin-bottom: 20px;
     }
 
-    /* Vertical alignment tweak for inline setup row */
     div[data-testid="stCheckbox"] {
         margin-top: 28px;
     }
@@ -331,8 +330,9 @@ if 'active_address' in st.session_state:
     
     st.info(f"🏠 **Active Property:** {active_property}, {active_postcode}")
     
-    tab_broadband, tab_energy, tab_sales, tab_banking = st.tabs([
+    tab_broadband, tab_tv, tab_energy, tab_sales, tab_banking = st.tabs([
         "🌐 Broadband", 
+        "📺 TV & Streaming",
         "⚡ Energy & EPC Rating", 
         "🏠 Sales History & Valuation", 
         "💰 Cash & Savings"
@@ -440,7 +440,134 @@ if 'active_address' in st.session_state:
             """, unsafe_allow_html=True)
 
     # ===================================================================
-    # TAB 2: UNIFIED ENERGY & EPC OPTIMIZATION (ALIGNED & RESIZED)
+    # TAB 2: TV, SPORTS & STREAMING AUDIT
+    # ===================================================================
+    with tab_tv:
+        st.subheader("📺 Television, Sports & Streaming Audit")
+        st.caption(f"Active entertainment contract & actual usage audit for **{active_property}**")
+
+        # 1. Main Provider & Contract
+        st.markdown("#### 1️⃣ Current Contracted Packages")
+        col_tv1, col_tv2, col_tv3 = st.columns([1.2, 1, 2.5])
+        with col_tv1:
+            primary_tv = st.selectbox("Main TV Setup:", ["NOW TV Pass / App-based", "Sky Stream", "Sky Q / Dish", "Virgin Media TV", "EE TV", "Freeview / Freesat Only"], key="primary_tv")
+        with col_tv2:
+            tv_bill = st.number_input("Main TV Package Bill (£/mo):", min_value=0.0, max_value=250.0, value=11.0, step=1.0, key="tv_bill")
+        with col_tv3:
+            tv_contract = st.selectbox("Contract Expiry / Status:", ["Monthly Rolling / No Contract", "In Contract", "Expiring within 30 Days"], key="tv_contract")
+
+        # 2. Actual Content Usage Audit
+        st.divider()
+        st.markdown("#### 2️⃣ Real Household Viewing Audit (What Do You Actually Watch?)")
+        st.caption("Select the actual shows and channels your household routinely watches to flag redundant hardware or channel packs.")
+
+        col_use1, col_use2 = st.columns(2)
+        with col_use1:
+            watch_soaps = st.checkbox("📺 Terrestrial TV / Soaps (Coronation St, Emmerdale, ITV1, BBC, Ch4)", value=True)
+            watch_sports = st.checkbox("⚽ Premier League / Sky Sports Fixtures", value=True)
+            watch_movies = st.checkbox("🎬 On-Demand Movies & Series", value=True)
+        with col_use2:
+            watch_news = st.checkbox("📰 Sky News / BBC News", value=True)
+            watch_tnt = st.checkbox("🥊 TNT Sports (Champions League / Rugby / UFC)", value=False)
+            split_sports = st.checkbox("👥 Shared / Split Family Membership (e.g., NOW Sports split 50/50)", value=True)
+
+        st.divider()
+        st.markdown("#### 3️⃣ Active Streaming App Subscriptions")
+        
+        col_app1, col_app2, col_app3, col_app4 = st.columns(4)
+        with col_app1:
+            sub_netflix = st.checkbox("Netflix (£10.99/mo)", value=True)
+            sub_prime = st.checkbox("Amazon Prime (£8.99/mo)", value=True)
+        with col_app2:
+            sub_disney = st.checkbox("Disney+ (£7.99/mo)", value=False)
+            sub_apple = st.checkbox("Apple TV+ (£8.99/mo)", value=False)
+        with col_app3:
+            sub_paramount = st.checkbox("Paramount+ (£6.99/mo)", value=False)
+            sub_discovery = st.checkbox("Discovery+ (£3.99/mo)", value=False)
+        with col_app4:
+            sub_youtube = st.checkbox("YouTube Premium (£12.99/mo)", value=False)
+            sub_spotify = st.checkbox("Spotify / Music (£11.99/mo)", value=True)
+
+        streaming_total = (
+            (10.99 if sub_netflix else 0) +
+            (8.99 if sub_prime else 0) +
+            (7.99 if sub_disney else 0) +
+            (8.99 if sub_apple else 0) +
+            (6.99 if sub_paramount else 0) +
+            (3.99 if sub_discovery else 0) +
+            (12.99 if sub_youtube else 0) +
+            (11.99 if sub_spotify else 0)
+        )
+        
+        total_media_spend = tv_bill + streaming_total
+
+        st.markdown("---")
+        st.markdown("### 📊 Household Media Spend Audit")
+        col_m1, col_m2, col_m3 = st.columns(3)
+        with col_m1:
+            st.metric("Main TV & Sports Bill", f"£{tv_bill:.2f} / mo")
+        with col_m2:
+            st.metric("Streaming Apps Total", f"£{streaming_total:.2f} / mo")
+        with col_m3:
+            st.metric("Combined Monthly Spend", f"£{total_media_spend:.2f} / mo", delta=f"£{total_media_spend * 12:.2f} / yr")
+
+        st.markdown("---")
+        st.markdown("### 🏷️ Usage-Matched Media Recommendations")
+
+        # Dynamic Recommendation logic based on viewing habits
+        if watch_soaps and not watch_sports and tv_bill > 30:
+            st.warning("⚠️ **Redundancy Alert:** You are paying for a high-tier TV contract (Sky Q / Virgin), but your primary viewing is free-to-air soaps and free terrestrial apps (ITVX, iPlayer). Switching to a Smart TV / Firestick + Freeview would save **~£60–£90/mo**.")
+
+        tv_deals = [
+            {
+                "Name": "NOW Sports + Boost (Shared/Split Membership)",
+                "Cost": 11.00,
+                "Type": "No Contract / Monthly Flex",
+                "Perks": "Full 1080p HD, 50fps sports streaming across devices without Sky Q box fees",
+                "Fit": "Optimal for lean sports viewing"
+            },
+            {
+                "Name": "Sky Stream Essential + Sky Sports",
+                "Cost": 46.00,
+                "Type": "18-Month Contract",
+                "Perks": "Includes Netflix, free dishless puck hardware, all Sky channels in HD",
+                "Fit": "Best traditional cable replacement"
+            },
+            {
+                "Name": "Virgin Stream Box (Flex TV)",
+                "Cost": 35.00,
+                "Type": "Monthly Rolling",
+                "Perks": "10% bill credit back on active streaming subscriptions",
+                "Fit": "Great if combined with Virgin broadband"
+            }
+        ]
+
+        for td in tv_deals:
+            diff = total_media_spend - td['Cost']
+            financial_text = f"Save £{diff:.2f}/mo vs current total" if diff > 0 else f"Alternative setup option"
+            financial_color = "#16a34a" if diff > 0 else "#0369a1"
+
+            st.markdown(f"""
+            <div class="deal-card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div class="deal-title">{td['Name']}</div>
+                        <div style="margin-top: 6px;">
+                            <span class="badge">{td['Type']}</span>
+                            <span class="badge badge-speed">📺 {td['Fit']}</span>
+                        </div>
+                        <div style="font-size: 0.85rem; color: #64748b; margin-top: 8px;">🎁 {td['Perks']}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="deal-price">£{td['Cost']:.2f} <span style="font-size: 0.8rem; font-weight: normal; color: #64748b;">/mo</span></div>
+                        <div style="font-size: 0.85rem; font-weight: 700; color: {financial_color};">{financial_text}</div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    # ===================================================================
+    # TAB 3: UNIFIED ENERGY & EPC OPTIMIZATION
     # ===================================================================
     with tab_energy:
         st.subheader("⚡ Property Efficiency & Tariff Audit")
@@ -490,7 +617,6 @@ if 'active_address' in st.session_state:
         # 3. Interactive Multi-Fuel Energy Audit
         st.markdown("### 💰 Household Fuel & Tariff Audit")
         
-        # Aligned setup row: Radio on left, Checkbox on right
         col_setup1, col_setup2 = st.columns([3, 1])
         with col_setup1:
             fuel_setup = st.radio("Energy Supply Setup:", ["Electricity & Gas (Split/Separate)", "Electricity Only", "Gas Only"], horizontal=True)
@@ -499,7 +625,6 @@ if 'active_address' in st.session_state:
 
         elec_supplier, elec_bill, gas_supplier, gas_bill = "Octopus Energy", 90.0, "Octopus Energy", 55.0
 
-        # Ratios [1.2, 1, 2.5] give smaller width to Supplier & Bill, giving 50% width to Tariff Type
         if "Electricity" in fuel_setup:
             st.caption("⚡ **Electricity Package**")
             col_el1, col_el2, col_el3 = st.columns([1.2, 1, 2.5])
@@ -584,7 +709,7 @@ if 'active_address' in st.session_state:
             """, unsafe_allow_html=True)
 
     # ===================================================================
-    # TAB 3: LAND REGISTRY SALES HISTORY
+    # TAB 4: LAND REGISTRY SALES HISTORY
     # ===================================================================
     with tab_sales:
         st.subheader("🏠 HM Land Registry Sold Price History")
@@ -631,7 +756,7 @@ if 'active_address' in st.session_state:
             st.warning(f"No recent Land Registry transaction records found for postcode {active_postcode}.")
 
     # ===================================================================
-    # TAB 4: CASH & SAVINGS
+    # TAB 5: CASH & SAVINGS
     # ===================================================================
     with tab_banking:
         st.subheader("💰 Cash & Savings Optimization")
