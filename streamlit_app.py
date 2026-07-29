@@ -159,7 +159,7 @@ if 'active_address' in st.session_state:
         st.divider()
 
         # -------------------------------------------------------------------
-        # AUDIT FORM
+        # AUDIT FORM (WITH UK DATE FORMATTING)
         # -------------------------------------------------------------------
         st.markdown("### 📊 Household Contract & Speed Audit")
         
@@ -178,15 +178,16 @@ if 'active_address' in st.session_state:
         with col_in4:
             contract_status = st.selectbox("Contract Status:", ["In Contract", "Out of Contract (Rolling)", "Expiring within 30 Days"])
         
-        # Calculate Term & Indicative Exit Fee
         est_exit_fee = 0.0
         months_left = 0.0
         
         if contract_status == "In Contract":
             with col_in5:
+                # format="DD/MM/YYYY" enforces UK date display
                 expiry_date = st.date_input(
                     "Contract Expiry Date (if known):", 
-                    value=datetime.date(2027, 2, 5)
+                    value=datetime.date(2027, 2, 5),
+                    format="DD/MM/YYYY"
                 )
             
             today = datetime.date.today()
@@ -197,7 +198,8 @@ if 'active_address' in st.session_state:
                 # Formula: Bill x 0.80 (VAT/wholesale discount) x remaining months
                 est_exit_fee = round((current_bill * 0.80) * months_left, 2)
                 
-                st.caption(f"⏱️ **Contract Term:** ~{months_left} months remaining. Indicative exit fee: **~£{est_exit_fee:.2f}**")
+                formatted_uk_date = expiry_date.strftime("%d/%m/%Y")
+                st.caption(f"⏱️ **Contract Expiry:** {formatted_uk_date} (~{months_left} months remaining). Indicative exit fee: **~£{est_exit_fee:.2f}**")
         else:
             with col_in5:
                 st.write("")
