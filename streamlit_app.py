@@ -76,6 +76,11 @@ st.markdown("""
         color: #92400e;
         margin-bottom: 20px;
     }
+
+    /* Vertical alignment tweak for inline setup row */
+    div[data-testid="stCheckbox"] {
+        margin-top: 28px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -435,7 +440,7 @@ if 'active_address' in st.session_state:
             """, unsafe_allow_html=True)
 
     # ===================================================================
-    # TAB 2: UNIFIED ENERGY & EPC OPTIMIZATION (COMPACT INPUTS)
+    # TAB 2: UNIFIED ENERGY & EPC OPTIMIZATION (ALIGNED & RESIZED)
     # ===================================================================
     with tab_energy:
         st.subheader("⚡ Property Efficiency & Tariff Audit")
@@ -482,10 +487,11 @@ if 'active_address' in st.session_state:
 
         st.divider()
 
-        # 3. Interactive Multi-Fuel Energy Audit (Compact Layout)
+        # 3. Interactive Multi-Fuel Energy Audit
         st.markdown("### 💰 Household Fuel & Tariff Audit")
         
-        col_setup1, col_setup2 = st.columns([2, 1])
+        # Aligned setup row: Radio on left, Checkbox on right
+        col_setup1, col_setup2 = st.columns([3, 1])
         with col_setup1:
             fuel_setup = st.radio("Energy Supply Setup:", ["Electricity & Gas (Split/Separate)", "Electricity Only", "Gas Only"], horizontal=True)
         with col_setup2:
@@ -493,9 +499,10 @@ if 'active_address' in st.session_state:
 
         elec_supplier, elec_bill, gas_supplier, gas_bill = "Octopus Energy", 90.0, "Octopus Energy", 55.0
 
+        # Ratios [1.2, 1, 2.5] give smaller width to Supplier & Bill, giving 50% width to Tariff Type
         if "Electricity" in fuel_setup:
             st.caption("⚡ **Electricity Package**")
-            col_el1, col_el2, col_el3 = st.columns([1, 1, 1])
+            col_el1, col_el2, col_el3 = st.columns([1.2, 1, 2.5])
             with col_el1:
                 elec_supplier = st.selectbox("Supplier:", ["Octopus Energy", "British Gas", "E.ON Next", "OVO Energy", "EDF Energy", "Other"], key="elec_sup")
             with col_el2:
@@ -505,7 +512,7 @@ if 'active_address' in st.session_state:
 
         if "Gas" in fuel_setup:
             st.caption("🔥 **Gas Package**")
-            col_g1, col_g2, col_g3 = st.columns([1, 1, 1])
+            col_g1, col_g2, col_g3 = st.columns([1.2, 1, 2.5])
             with col_g1:
                 gas_supplier = st.selectbox("Supplier:", ["Octopus Energy", "British Gas", "E.ON Next", "OVO Energy", "EDF Energy", "Other"], key="gas_sup")
             with col_g2:
