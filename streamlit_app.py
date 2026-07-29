@@ -92,51 +92,62 @@ if 'scanned_postcode' not in st.session_state:
 def natural_sort_key(s):
     return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s)]
 
-# Property Type lookup dictionary
-PROPERTY_TYPE_MAP = {
-    "D": "Detached",
-    "S": "Semi-Detached",
-    "T": "Terraced",
-    "F": "Flat / Maisonette",
-    "O": "Other",
-    "DETACHED": "Detached",
-    "SEMI-DETACHED": "Semi-Detached",
-    "TERRACED": "Terraced",
-    "FLAT": "Flat / Maisonette"
-}
-
-# Recursive JSON cleaner to strip away nested lists/dicts from Land Registry RDF output
-def extract_clean_text(val, fallback="Residential"):
-    if val is None:
-        return fallback
-        
-    while isinstance(val, list) and len(val) > 0:
+# -------------------------------------------------------------------
+# LAND REGISTRY PARSER
+# -------------------------------------------------------------------
+def parse_property_type(item):
+    # Search all possible RDF structures returned by HM Land Registry
+    val = item.get("propertyType") or item.get("propertyCategory")
+    raw_str = ""
+    
+    if isinstance(val, list) and len(val) > 0:
         val = val[0]
         
     if isinstance(val, dict):
-        if '_Value' in val:
-            return extract_clean_text(val['_Value'], fallback)
-        elif 'label' in val:
-            return extract_clean_text(val['label'], fallback)
-        elif 'prefLabel' in val:
-            return extract_clean_text(val['prefLabel'], fallback)
-        elif '@id' in val:
-            return extract_clean_text(val['@id'], fallback)
-            
-    if isinstance(val, str):
-        text = val.strip()
-        if '/' in text:
-            text = text.split('/')[-1]
-            
-        text_upper = text.upper().replace("-", " ")
-        if text_upper in PROPERTY_TYPE_MAP:
-            return PROPERTY_TYPE_MAP[text_upper]
-        if text.upper() in PROPERTY_TYPE_MAP:
-            return PROPERTY_TYPE_MAP[text.upper()]
-            
-        return text.title()
+        raw_str = val.get("_about") or val.get("@id") or val.get("prefLabel") or val.get("_Value") or ""
+    elif isinstance(val, str):
+        raw_str = val
+
+    raw_str = str(raw_str).lower()
+    
+    if "semi-detached" in raw_str or "semidetached" in raw_str or raw_str.endswith("/s"):
+        return "Semi-Detached"
+    elif "terraced" in raw_str or raw_str.endswith("/t"):
+        return "Terraced"
+    elif "detached" in raw_str or raw_str.endswith("/d"):
+        return "Detached"
+    elif "flat" in raw_str or "maisonette" in raw_str or raw_str.endswith("/f"):
+        return "Flat / Maisonette"
+    elif "other" in raw_str or raw_str.endswith("/o"):
+        return "Other Residential"
         
-    return fallback
+    return "Residential"
+
+def parse_tenure_type(item):
+    val = item.get("estateType")
+    raw_str = ""
+    
+    if isinstance(val, list) and len(val) > 0:
+        val = val[0]
+        
+    if isinstance(val, dict):
+        raw_str = val.get("_about") or val.get("@id") or val.get("prefLabel") or val.get("_Value") or ""
+    elif isinstance(val, str):
+        raw_str = val
+
+    raw_str = str(raw_str).lower()
+    if "leasehold" in raw_str:
+        return "Leasehold"
+    return "Freehold"
+
+def extract_clean_text(val, fallback=""):
+    if val is None:
+        return fallback
+    while isinstance(val, list) and len(val) > 0:
+        val = val[0]
+    if isinstance(val, dict):
+        return str(val.get('_Value') or val.get('label') or fallback)
+    return str(val).strip()
 
 # -------------------------------------------------------------------
 # API CALL 1: ADDRESS LOOKUP
@@ -188,15 +199,15 @@ def fetch_land_registry_sales(postcode):
             
             for item in items:
                 addr = item.get("propertyAddress", {})
-                paon = extract_clean_text(addr.get("paon", ""), "")
-                saon = extract_clean_text(addr.get("saon", ""), "")
-                street = extract_clean_text(addr.get("street", ""), "")
+                paon = extract_clean_text(addr.get("paon"), "")
+                saon = extract_clean_text(addr.get("saon"), "")
+                street = extract_clean_text(addr.get("street"), "")
                 
                 addr_parts = [p for p in [saon, paon, street] if p]
                 full_address = " ".join(addr_parts)
                 
-                prop_type = extract_clean_text(item.get("propertyType"), "Residential")
-                tenure_type = extract_clean_text(item.get("estateType"), "Freehold")
+                prop_type = parse_property_type(item)
+                tenure_type = parse_tenure_type(item)
                 
                 raw_date = item.get("transactionDate", "")
                 
@@ -434,7 +445,7 @@ if 'active_address' in st.session_state:
             st.write(f"☀️ **Solar Potential:** High (Suitable for 3.8 kWp array)")
 
     # ===================================================================
-    # TAB 3: LAND REGISTRY SALES HISTORY (CLEAN METRICS + NO GRAPH)
+    # TAB 3: LAND REGISTRY SALES HISTORY (CARDS ONLY)
     # ===================================================================
     with tab_sales:
         st.subheader("🏠 HM Land Registry Sold Price History")
@@ -453,21 +464,6 @@ if 'active_address' in st.session_state:
                 max_price = int(df_sales['Price'].max())
                 st.metric("Highest Sale Price", f"£{max_price:,}")
                 
-            st.divider()
-            
-            # Average Price by Property Type
-            st.markdown("### 📊 Average Price by House Type")
-            type_summary = df_sales.groupby('Type')['Price'].agg(['mean', 'count']).reset_index()
-            type_cols = st.columns(len(type_summary))
-            
-            for idx, row in type_summary.iterrows():
-                if idx < len(type_cols):
-                    with type_cols[idx]:
-                        st.metric(
-                            label=f"{row['Type']} ({row['count']} sales)", 
-                            value=f"£{int(row['mean']):,}"
-                        )
-            
             st.divider()
             st.markdown("### 📜 Registered Transactions")
             
