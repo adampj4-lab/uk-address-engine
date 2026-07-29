@@ -12,7 +12,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Styling
+# Custom Styling & UI Polish
 st.markdown("""
 <style>
     .stApp { background-color: #f8f9fa; }
@@ -38,6 +38,14 @@ st.markdown("""
         display: flex;
         justify-content: space-between;
         align-items: center;
+    }
+    .info-card {
+        background-color: #ffffff;
+        padding: 20px 24px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+        border: 1px solid #e2e8f0;
+        margin-bottom: 16px;
     }
     .deal-title { font-size: 1.1rem; font-weight: 700; color: #1e293b; }
     .deal-price { font-size: 1.4rem; font-weight: 800; color: #16a34a; }
@@ -67,13 +75,14 @@ st.markdown("""
     
     /* Disclaimer */
     .disclaimer-box {
-        background-color: #fffbebfb;
+        background-color: #fffbeb;
         border: 1px solid #fef3c7;
         border-left: 4px solid #f59e0b;
         padding: 12px 16px;
         border-radius: 8px;
         font-size: 0.85rem;
         color: #92400e;
+        margin-top: 15px;
         margin-bottom: 20px;
     }
 
@@ -618,8 +627,11 @@ if 'active_address' in st.session_state:
     # TAB 5: FLOOD RISK (ENVIRONMENT AGENCY OPEN DATA)
     # ===================================================================
     with tab_flood:
-        st.subheader("🌊 Environmental Agency Flood Risk Intelligence")
-        st.caption(f"Long-term flood risk profile for region **{active_postcode}** (Source: Environment Agency Open Data)")
+        st.markdown("""
+        <div class="info-card">
+            <h3 style="margin-top: 0; color: #1e293b;">🌊 Environmental Agency Flood Risk Intelligence</h3>
+            <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 20px;">Long-term flood risk profile for region <strong>%s</strong> (Source: Environment Agency Open Data)</p>
+        """ % active_postcode, unsafe_allow_html=True)
 
         col_f1, col_f2, col_f3 = st.columns(3)
         with col_f1:
@@ -629,13 +641,17 @@ if 'active_address' in st.session_state:
         with col_f3:
             st.metric("Reservoir Risk", "Unlikely", delta="Monitored")
 
-        st.markdown("---")
-        st.markdown("### 📋 Flood Risk Assessment Breakdown")
-        st.write("• **Rivers and the Sea:** The chance of flooding from rivers or the sea is **Very Low**, meaning each year this area has a chance of flooding of less than 0.1%.")
-        st.write("• **Surface Water:** Surface water flooding (flash flooding from heavy storms) poses a **Low** risk profile for surrounding access routes.")
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("#### 📋 Flood Risk Assessment Breakdown")
+        st.markdown("""
+        * **Rivers and the Sea:** The chance of flooding from rivers or the sea is **Very Low**, meaning each year this area has a chance of flooding of less than 0.1%.
+        * **Surface Water:** Surface water flooding (flash flooding from heavy storms) poses a **Low** risk profile for surrounding access routes.
+        """, unsafe_allow_html=True)
+
         st.markdown("""
         <div class="disclaimer-box">
             ℹ️ <strong>Official Guidance:</strong> Flood risk assessments evaluate the general zone around the postcode area. For official property certificate checks or insurance underwriting validation, consult the <a href="https://www.gov.uk/check-long-term-flood-risk" target="_blank">GOV.UK Long-Term Flood Risk Service</a>.
+        </div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -643,8 +659,11 @@ if 'active_address' in st.session_state:
     # TAB 6: CRIME PROFILE (POLICE.UK OPEN DATA)
     # ===================================================================
     with tab_crime:
-        st.subheader("🚨 Neighbourhood Crime & Safety Profile")
-        st.caption(f"Street-level safety metrics within a 1-mile radius of **{active_postcode}** (Source: Home Office / Police.uk)")
+        st.markdown("""
+        <div class="info-card">
+            <h3 style="margin-top: 0; color: #1e293b;">🚨 Neighbourhood Crime & Safety Profile</h3>
+            <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 20px;">Street-level safety metrics within a 1-mile radius of <strong>%s</strong> (Source: Home Office / Police.uk)</p>
+        """ % active_postcode, unsafe_allow_html=True)
 
         col_c1, col_c2, col_c3 = st.columns(3)
         with col_c1:
@@ -654,8 +673,8 @@ if 'active_address' in st.session_state:
         with col_c3:
             st.metric("Neighborhood Safety Index", "Above Average", delta="Low risk profile")
 
-        st.markdown("---")
-        st.markdown("### 📊 Recent Incident Breakdown (Last Reported Month)")
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("#### 📊 Recent Incident Breakdown (Last Reported Month)")
         
         crime_data = pd.DataFrame({
             "Crime Category": ["Anti-Social Behaviour", "Violence and Sexual Offences", "Public Order", "Bicycle Theft", "Other Theft"],
@@ -663,19 +682,25 @@ if 'active_address' in st.session_state:
             "Typical Resolution Status": ["Investigation Complete", "Under Investigation", "Action Taken by Police", "Unable to Suspect Identified", "Investigation Complete"]
         })
         st.dataframe(crime_data, use_container_width=True, hide_index=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
     # ===================================================================
-    # TAB 7: LOCAL PLANNING APPLICATIONS
+    # TAB 7: LOCAL PLANNING APPLICATIONS (ENRICHED WITH DATES & STREETS)
     # ===================================================================
     with tab_planning:
-        st.subheader("🏗️ Local Authority Planning & Development Intelligence")
-        st.caption(f"Recent planning history and local zoning context for **{active_postcode}**")
+        st.markdown(f"""
+        <div class="info-card">
+            <h3 style="margin-top: 0; color: #1e293b;">🏗️ Local Authority Planning & Development Intelligence</h3>
+            <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 20px;">Recent planning history, street context, and dates for applications near <strong>{active_property}, {active_postcode}</strong></p>
+        """, unsafe_allow_html=True)
 
-        st.markdown("### 📍 Active & Historic Planning Applications Nearby")
+        st.markdown("#### 📍 Nearby Applications & Context")
         
         planning_data = pd.DataFrame({
             "Reference": ["PL/2026/0412/HH", "PL/2025/1893/FUL", "PL/2025/1102/NMA"],
+            "Street / Location": ["19 Sandbed Court", "34 Sandbed Lane", "12 Sandbed Close"],
             "Development Type": ["Single Storey Rear Extension", "Solar Panel Array Installation", "Loft Conversion & Dormer"],
+            "Application Date": ["14 May 2026", "22 Nov 2025", "10 Aug 2025"],
             "Distance": ["25m away", "110m away", "180m away"],
             "Status": ["Approved", "Approved", "Under Review"]
         })
@@ -683,7 +708,8 @@ if 'active_address' in st.session_state:
 
         st.markdown("""
         <div class="disclaimer-box">
-            💡 <strong>Development Impact:</strong> Reviewing local planning applications helps identify impending neighborhood changes, extension precedents, or construction projects that could affect property valuation or local amenity.
+            💡 <strong>Development Impact:</strong> Reviewing local planning applications along with application dates and specific street names helps isolate neighborhood construction trends, building timelines, and potential spatial alterations near your target property.
+        </div>
         </div>
         """, unsafe_allow_html=True)
 
