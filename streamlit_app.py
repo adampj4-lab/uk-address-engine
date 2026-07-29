@@ -435,7 +435,7 @@ if 'active_address' in st.session_state:
             """, unsafe_allow_html=True)
 
     # ===================================================================
-    # TAB 2: UNIFIED ENERGY & EPC OPTIMIZATION (INDEPENDENT FUELS)
+    # TAB 2: UNIFIED ENERGY & EPC OPTIMIZATION (COMPACT INPUTS)
     # ===================================================================
     with tab_energy:
         st.subheader("⚡ Property Efficiency & Tariff Audit")
@@ -482,39 +482,41 @@ if 'active_address' in st.session_state:
 
         st.divider()
 
-        # 3. Interactive Multi-Fuel Energy Audit
+        # 3. Interactive Multi-Fuel Energy Audit (Compact Layout)
         st.markdown("### 💰 Household Fuel & Tariff Audit")
         
-        fuel_setup = st.radio("Household Energy Supply Setup:", ["Electricity & Gas (Split/Separate Suppliers)", "Electricity Only (All-Electric / Heat Pump)", "Gas Only"], horizontal=True)
-        
-        has_ev = st.checkbox("🔌 I have a Plug-In Hybrid (PHEV) or Electric Vehicle (EV)", value=True)
+        col_setup1, col_setup2 = st.columns([2, 1])
+        with col_setup1:
+            fuel_setup = st.radio("Energy Supply Setup:", ["Electricity & Gas (Split/Separate)", "Electricity Only", "Gas Only"], horizontal=True)
+        with col_setup2:
+            has_ev = st.checkbox("🔌 EV / Plug-In Hybrid", value=True)
 
         elec_supplier, elec_bill, gas_supplier, gas_bill = "Octopus Energy", 90.0, "Octopus Energy", 55.0
 
         if "Electricity" in fuel_setup:
-            st.markdown("#### ⚡ Electricity Details")
-            col_el1, col_el2, col_el3 = st.columns(3)
+            st.caption("⚡ **Electricity Package**")
+            col_el1, col_el2, col_el3 = st.columns([1, 1, 1])
             with col_el1:
-                elec_supplier = st.selectbox("Electricity Supplier:", ["Octopus Energy", "British Gas", "E.ON Next", "OVO Energy", "EDF Energy", "Other"], key="elec_sup")
+                elec_supplier = st.selectbox("Supplier:", ["Octopus Energy", "British Gas", "E.ON Next", "OVO Energy", "EDF Energy", "Other"], key="elec_sup")
             with col_el2:
-                elec_bill = st.number_input("Electricity Monthly Bill (£):", min_value=10.0, max_value=600.0, value=90.0, step=5.0, key="elec_cost")
+                elec_bill = st.number_input("Bill (£/mo):", min_value=10.0, max_value=600.0, value=90.0, step=5.0, key="elec_cost")
             with col_el3:
-                elec_tariff_type = st.selectbox("Electricity Tariff Type:", ["EV / PHEV Smart Tariff (e.g. Intelligent Octopus Go)", "Standard Variable (Price Cap)", "12M Fixed Rate"], key="elec_type")
+                elec_tariff_type = st.selectbox("Tariff Type:", ["EV Smart Tariff (Intelligent Octopus)", "Standard Variable", "Fixed Rate"], key="elec_type")
 
         if "Gas" in fuel_setup:
-            st.markdown("#### 🔥 Gas Details")
-            col_g1, col_g2, col_g3 = st.columns(3)
+            st.caption("🔥 **Gas Package**")
+            col_g1, col_g2, col_g3 = st.columns([1, 1, 1])
             with col_g1:
-                gas_supplier = st.selectbox("Gas Supplier:", ["Octopus Energy", "British Gas", "E.ON Next", "OVO Energy", "EDF Energy", "Other"], key="gas_sup")
+                gas_supplier = st.selectbox("Supplier:", ["Octopus Energy", "British Gas", "E.ON Next", "OVO Energy", "EDF Energy", "Other"], key="gas_sup")
             with col_g2:
-                gas_bill = st.number_input("Gas Monthly Bill (£):", min_value=10.0, max_value=600.0, value=55.0, step=5.0, key="gas_cost")
+                gas_bill = st.number_input("Bill (£/mo):", min_value=10.0, max_value=600.0, value=55.0, step=5.0, key="gas_cost")
             with col_g3:
-                gas_tariff_type = st.selectbox("Gas Tariff Type:", ["Standard Variable (Price Cap)", "12M Fixed Rate"], key="gas_type")
+                gas_tariff_type = st.selectbox("Tariff Type:", ["Standard Variable", "Fixed Rate"], key="gas_type")
 
         total_annual_spend = (elec_bill if "Electricity" in fuel_setup else 0) * 12 + (gas_bill if "Gas" in fuel_setup else 0) * 12
         
         st.markdown("---")
-        st.markdown("### 🏷️ Market Tariff Comparison (Independent Fuel Matches)")
+        st.markdown("### 🏷️ Recommended Market Tariffs")
         
         tariffs = []
         
