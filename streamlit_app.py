@@ -346,7 +346,6 @@ if 'active_address' in st.session_state:
         "💧 Water",
         "🌊 Flood Risk",
         "🚨 Crime Profile",
-        "🏗️ Planning",
         "🏠 Sales History", 
         "💰 Cash & Savings"
     ])
@@ -357,9 +356,8 @@ if 'active_address' in st.session_state:
     tab_water = tabs[3]
     tab_flood = tabs[4]
     tab_crime = tabs[5]
-    tab_planning = tabs[6]
-    tab_sales = tabs[7]
-    tab_banking = tabs[8]
+    tab_sales = tabs[6]
+    tab_banking = tabs[7]
     
     # ===================================================================
     # TAB 1: BROADBAND
@@ -685,36 +683,7 @@ if 'active_address' in st.session_state:
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ===================================================================
-    # TAB 7: LOCAL PLANNING APPLICATIONS (ENRICHED WITH DATES & STREETS)
-    # ===================================================================
-    with tab_planning:
-        st.markdown(f"""
-        <div class="info-card">
-            <h3 style="margin-top: 0; color: #1e293b;">🏗️ Local Authority Planning & Development Intelligence</h3>
-            <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 20px;">Recent planning history, street context, and dates for applications near <strong>{active_property}, {active_postcode}</strong></p>
-        """, unsafe_allow_html=True)
-
-        st.markdown("#### 📍 Nearby Applications & Context")
-        
-        planning_data = pd.DataFrame({
-            "Reference": ["PL/2026/0412/HH", "PL/2025/1893/FUL", "PL/2025/1102/NMA"],
-            "Street / Location": ["19 Sandbed Court", "34 Sandbed Lane", "12 Sandbed Close"],
-            "Development Type": ["Single Storey Rear Extension", "Solar Panel Array Installation", "Loft Conversion & Dormer"],
-            "Application Date": ["14 May 2026", "22 Nov 2025", "10 Aug 2025"],
-            "Distance": ["25m away", "110m away", "180m away"],
-            "Status": ["Approved", "Approved", "Under Review"]
-        })
-        st.dataframe(planning_data, use_container_width=True, hide_index=True)
-
-        st.markdown("""
-        <div class="disclaimer-box">
-            💡 <strong>Development Impact:</strong> Reviewing local planning applications along with application dates and specific street names helps isolate neighborhood construction trends, building timelines, and potential spatial alterations near your target property.
-        </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    # ===================================================================
-    # TAB 8: LAND REGISTRY SALES HISTORY
+    # TAB 7: LAND REGISTRY SALES HISTORY
     # ===================================================================
     with tab_sales:
         st.subheader("🏠 HM Land Registry Sold Price History")
@@ -761,7 +730,7 @@ if 'active_address' in st.session_state:
             st.warning(f"No recent Land Registry transaction records found for postcode {active_postcode}.")
 
     # ===================================================================
-    # TAB 9: CASH & SAVINGS
+    # TAB 8: CASH & SAVINGS
     # ===================================================================
     with tab_banking:
         st.subheader("💰 Cash & Savings Optimization")
