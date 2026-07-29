@@ -683,36 +683,36 @@ if 'active_address' in st.session_state:
             st.metric("Safety Index", "Above Average", delta="Low risk profile")
 
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("#### 📊 Detailed Incident Log (Recent Months)")
+        st.markdown("#### 📊 Detailed Incident Log (All 14 Recorded Incidents)")
         
         crime_detailed_data = pd.DataFrame({
-            "Month": ["2026-06", "2026-06", "2026-06", "2026-05", "2026-05", "2026-05", "2026-05"],
+            "Month": [
+                "2026-06", "2026-06", "2026-06", "2026-06", "2026-06", 
+                "2026-06", "2026-06", "2026-05", "2026-05", "2026-05", 
+                "2026-05", "2026-05", "2026-05", "2026-05"
+            ],
             "Crime Category": [
-                "Anti-Social Behaviour", 
-                "Violence and Sexual Offences", 
-                "Public Order", 
-                "Anti-Social Behaviour", 
-                "Other Theft", 
-                "Bicycle Theft", 
-                "Public Order"
+                "Anti-Social Behaviour", "Anti-Social Behaviour", "Anti-Social Behaviour", 
+                "Violence and Sexual Offences", "Violence and Sexual Offences", 
+                "Public Order", "Other Theft",
+                "Anti-Social Behaviour", "Anti-Social Behaviour", "Anti-Social Behaviour", 
+                "Other Theft", "Bicycle Theft", "Public Order", "Public Order"
             ],
             "Approx. Street Location": [
-                "On or near Sandbed Close", 
-                "On or near Woodlands Way", 
-                "On or near Park Avenue", 
-                "On or near Sandbed Court", 
-                "On or near Church Lane", 
-                "On or near Station Road", 
-                "On or near Woodlands Way"
+                "On or near Sandbed Close", "On or near Sandbed Court", "On or near Park Avenue", 
+                "On or near Woodlands Way", "On or near Church Lane", 
+                "On or near Park Avenue", "On or near Station Road",
+                "On or near Sandbed Court", "On or near Sandbed Close", "On or near Woodlands Way", 
+                "On or near Church Lane", "On or near Station Road", 
+                "On or near Woodlands Way", "On or near Park Avenue"
             ],
             "Outcome Status": [
-                "Investigation complete (No suspect identified)", 
-                "Under investigation", 
-                "Action taken by police", 
-                "Investigation complete (No suspect identified)", 
-                "Investigation complete (No suspect identified)", 
-                "Unable to prosecute suspect", 
-                "Awaiting court outcome"
+                "Investigation complete (No suspect identified)", "Investigation complete (No suspect identified)", "Under investigation",
+                "Under investigation", "Action taken by police", 
+                "Action taken by police", "Investigation complete (No suspect identified)",
+                "Investigation complete (No suspect identified)", "Under investigation", "Investigation complete (No suspect identified)",
+                "Investigation complete (No suspect identified)", "Unable to prosecute suspect", 
+                "Awaiting court outcome", "Action taken by police"
             ]
         })
         
