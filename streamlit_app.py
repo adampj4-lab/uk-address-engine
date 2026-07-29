@@ -330,7 +330,7 @@ if 'active_address' in st.session_state:
     
     st.info(f"🏠 **Active Property:** {active_property}, {active_postcode}")
     
-    tab_broadband, tab_tv, tab_energy, tab_water, tab_sales, tab_banking = st.tabs([
+    tabs = st.tabs([
         "🌐 Broadband", 
         "📺 TV & Streaming",
         "⚡ Energy & EPC",
@@ -338,6 +338,13 @@ if 'active_address' in st.session_state:
         "🏠 Sales History", 
         "💰 Cash & Savings"
     ])
+    
+    tab_broadband = tabs[0]
+    tab_tv = tabs[1]
+    tab_energy = tabs[2]
+    tab_water = tabs[3]
+    tab_sales = tabs[4]
+    tab_banking = tabs[5]
     
     # ===================================================================
     # TAB 1: BROADBAND
