@@ -440,7 +440,7 @@ if 'active_address' in st.session_state:
             """, unsafe_allow_html=True)
 
     # ===================================================================
-    # TAB 2: TV, SPORTS & STREAMING AUDIT
+    # TAB 2: TV, SPORTS & STREAMING AUDIT (SEPARATED USAGE)
     # ===================================================================
     with tab_tv:
         st.subheader("📺 Television, Sports & Streaming Audit")
@@ -456,20 +456,20 @@ if 'active_address' in st.session_state:
         with col_tv3:
             tv_contract = st.selectbox("Contract Expiry / Status:", ["Monthly Rolling / No Contract", "In Contract", "Expiring within 30 Days"], key="tv_contract")
 
-        # 2. Actual Content Usage Audit
+        # 2. Actual Content Usage Audit (Split Series vs Movies)
         st.divider()
         st.markdown("#### 2️⃣ Real Household Viewing Audit (What Do You Actually Watch?)")
-        st.caption("Select the actual shows and channels your household routinely watches to flag redundant hardware or channel packs.")
+        st.caption("Select actual viewing habits to isolate redundant channel packs (e.g. paying for Sky Cinema when you only watch series on apps).")
 
         col_use1, col_use2 = st.columns(2)
         with col_use1:
-            watch_soaps = st.checkbox("📺 Terrestrial TV / Soaps (Coronation St, Emmerdale, ITV1, BBC, Ch4)", value=True)
-            watch_sports = st.checkbox("⚽ Premier League / Sky Sports Fixtures", value=True)
-            watch_movies = st.checkbox("🎬 On-Demand Movies & Series", value=True)
+            watch_soaps = st.checkbox("📺 Terrestrial TV / Soaps (ITV1, BBC, Ch4, Soaps)", value=True)
+            watch_sports = st.checkbox("⚽ Premier League / Live Sports", value=True)
+            watch_series_apps = st.checkbox("📱 Series Streaming (Netflix, Prime Series, iPlayer boxsets)", value=True)
         with col_use2:
+            watch_movies = st.checkbox("🎬 Dedicated Movie Channels (Sky Cinema / Blockbuster rentals)", value=False)
             watch_news = st.checkbox("📰 Sky News / BBC News", value=True)
-            watch_tnt = st.checkbox("🥊 TNT Sports (Champions League / Rugby / UFC)", value=False)
-            split_sports = st.checkbox("👥 Shared / Split Family Membership (e.g., NOW Sports split 50/50)", value=True)
+            split_sports = st.checkbox("👥 Shared / Split Family Sports Membership (e.g., NOW Sports split 50/50)", value=True)
 
         st.divider()
         st.markdown("#### 3️⃣ Active Streaming App Subscriptions")
@@ -515,8 +515,8 @@ if 'active_address' in st.session_state:
         st.markdown("### 🏷️ Usage-Matched Media Recommendations")
 
         # Dynamic Recommendation logic based on viewing habits
-        if watch_soaps and not watch_sports and tv_bill > 30:
-            st.warning("⚠️ **Redundancy Alert:** You are paying for a high-tier TV contract (Sky Q / Virgin), but your primary viewing is free-to-air soaps and free terrestrial apps (ITVX, iPlayer). Switching to a Smart TV / Firestick + Freeview would save **~£60–£90/mo**.")
+        if not watch_movies and tv_bill > 40:
+            st.warning("⚠️ **Bundle Waste Alert:** You are paying for a premium traditional TV package but do **not** watch dedicated movie channels. You are likely paying for padded channel bundles you don't use.")
 
         tv_deals = [
             {
