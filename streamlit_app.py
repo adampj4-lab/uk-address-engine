@@ -43,6 +43,16 @@ st.markdown("""
     .epc-E { background-color: #ef7c1e; }
     .epc-F { background-color: #e36125; }
     .epc-G { background-color: #d72229; }
+    .disclaimer-box {
+        background-color: #fffbebfb;
+        border: 1px solid #fef3c7;
+        border-left: 4px solid #f59e0b;
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        color: #92400e;
+        margin-bottom: 20px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -60,7 +70,7 @@ def natural_sort_key(s):
     return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s)]
 
 # -------------------------------------------------------------------
-# API CALL 1: ADDRESS LOOKUP
+# API CALL 1: ADDRESS LOOKUP (Royal Mail PAF via Ideal Postcodes)
 # -------------------------------------------------------------------
 @st.cache_data(ttl=86400)
 def get_cached_addresses(clean_postcode):
@@ -85,61 +95,66 @@ def get_cached_addresses(clean_postcode):
         return []
 
 # -------------------------------------------------------------------
-# API CALL 2: LAND REGISTRY SALES HISTORY (SPARQL Public Open Data)
+# API CALL 2: LAND REGISTRY SALES HISTORY (DIRECT REST JSON API)
 # -------------------------------------------------------------------
 @st.cache_data(ttl=86400)
 def fetch_land_registry_sales(postcode):
     clean_pc = postcode.strip().upper()
-    sparql_query = f"""
-    PREFIX lrppd: <http://landregistry.data.gov.uk/def/ppi/>
     
-    SELECT ?paon ?saon ?street ?town ?postcode ?amount ?date ?propertyType ?tenure WHERE {{
-      ?item lrppd:pricePaid ?amount ;
-            lrppd:transactionDate ?date ;
-            lrppd:propertyAddress ?addr .
-      ?addr lrppd:postcode "{clean_pc}" .
-      OPTIONAL {{ ?addr lrppd:paon ?paon }}
-      OPTIONAL {{ ?addr lrppd:saon ?saon }}
-      OPTIONAL {{ ?addr lrppd:street ?street }}
-      OPTIONAL {{ ?addr lrppd:town ?town }}
-      OPTIONAL {{ ?item lrppd:propertyType ?pTypeURI . BIND(REPLACE(STR(?pTypeURI), ".*/", "") AS ?propertyType) }}
-      OPTIONAL {{ ?item lrppd:estateType ?tenureURI . BIND(REPLACE(STR(?tenureURI), ".*/", "") AS ?tenure) }}
-    }}
-    ORDER BY DESC(?date)
-    LIMIT 50
-    """
-    url = "https://landregistry.data.gov.uk/landregistry/query"
+    # Direct REST API endpoint
+    url = "https://landregistry.data.gov.uk/data/ppi/transaction-record.json"
+    params = {
+        "propertyAddress.postcode": clean_pc,
+        "_pageSize": 100
+    }
+    headers = {
+        "Accept": "application/json",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) HouseholdEngine/1.0"
+    }
+    
     try:
-        res = requests.get(url, params={'query': sparql_query}, headers={'Accept': 'application/sparql-results+json'}, timeout=10)
+        res = requests.get(url, params=params, headers=headers, timeout=10)
         if res.status_code == 200:
             data = res.json()
-            results = data.get('results', {}).get('bindings', [])
+            items = data.get("result", {}).get("items", [])
             records = []
-            for r in results:
-                paon = r.get('paon', {}).get('value', '')
-                saon = r.get('saon', {}).get('value', '')
-                street = r.get('street', {}).get('value', '')
+            
+            for item in items:
+                addr = item.get("propertyAddress", {})
+                paon = addr.get("paon", "")
+                saon = addr.get("saon", "")
+                street = addr.get("street", "")
                 
                 addr_parts = [p for p in [saon, paon, street] if p]
                 full_address = " ".join(addr_parts)
                 
+                p_type = item.get("propertyType", {})
+                p_label = p_type.get("label", "Residential") if isinstance(p_type, dict) else str(p_type).split("/")[-1]
+                
+                t_type = item.get("estateType", {})
+                t_label = t_type.get("label", "Freehold") if isinstance(t_type, dict) else str(t_type).split("/")[-1]
+                
                 records.append({
                     "Address": full_address,
-                    "Price": int(r.get('amount', {}).get('value', 0)),
-                    "Date": r.get('date', {}).get('value', '')[:10],
-                    "Type": r.get('propertyType', {}).get('value', 'Residential').title(),
-                    "Tenure": r.get('tenure', {}).get('value', 'Freehold').title()
+                    "Price": int(item.get("pricePaid", 0)),
+                    "Date": item.get("transactionDate", "")[:10],
+                    "Type": str(p_label).replace("-", " ").title(),
+                    "Tenure": str(t_label).replace("-", " ").title()
                 })
-            return pd.DataFrame(records)
-    except Exception:
-        pass
+            
+            df = pd.DataFrame(records)
+            if not df.empty:
+                df = df.sort_values(by="Date", ascending=False)
+            return df
+    except Exception as e:
+        print(f"Land Registry REST API Error: {e}")
+        
     return pd.DataFrame()
 
 # -------------------------------------------------------------------
-# HELPER: MOCK/LIVE EPC ENRICHMENT DUMMY ENGINE
+# HELPER: EPC PROFILE
 # -------------------------------------------------------------------
 def get_epc_details(address_str):
-    # Generates deterministic property data based on house string for demonstration
     house_num = re.findall(r'\d+', address_str)
     num = int(house_num[0]) if house_num else 21
     
@@ -235,17 +250,25 @@ if 'active_address' in st.session_state:
             contract_status = st.selectbox("Contract Status:", ["In Contract", "Out of Contract (Rolling)", "Expiring within 30 Days"])
         
         est_exit_fee = 0.0
+        months_left = 0.0
+        
         if contract_status == "In Contract":
             with col_in5:
-                expiry_date = st.date_input("Contract Expiry Date:", value=datetime.date(2027, 2, 5), format="DD/MM/YYYY")
+                expiry_date = st.date_input("Contract Expiry Date (if known):", value=datetime.date(2027, 2, 5), format="DD/MM/YYYY")
             
             today = datetime.date.today()
             if expiry_date > today:
                 days_left = (expiry_date - today).days
                 months_left = round(days_left / 30.44, 1)
+                
                 calc_fee = round((current_bill * 0.80) * months_left, 2)
                 override_fee = st.checkbox("I know my exact provider exit fee quote")
-                est_exit_fee = st.number_input("Enter Exact Exit Fee (£):", min_value=0.0, value=65.00, step=5.0) if override_fee else calc_fee
+                
+                if override_fee:
+                    est_exit_fee = st.number_input("Enter Exact Exit Fee (£):", min_value=0.0, value=65.00, step=5.0)
+                else:
+                    est_exit_fee = calc_fee
+                    st.caption(f"⏱️ **Contract Expiry:** {expiry_date.strftime('%d/%m/%Y')} (~{months_left} months remaining). Indicative exit fee: **~£{est_exit_fee:.2f}**")
         else:
             with col_in5: st.write("")
 
@@ -258,6 +281,12 @@ if 'active_address' in st.session_state:
         st.markdown("---")
         st.markdown("### 🏷️ Market Options vs Your Current Package")
         
+        st.markdown("""
+        <div class="disclaimer-box">
+            ⚠️ <strong>Disclaimer on Early Termination Fees:</strong> Contract exit costs and switch credit absorbency shown below are <strong>estimates for guidance only</strong> based on standard UK industry calculations (less VAT & non-consumed service charges). Always verify your exact early exit fee directly with your current provider before placing a switch order.
+        </div>
+        """, unsafe_allow_html=True)
+
         for d in deals:
             monthly_diff = current_bill - d['Cost']
             annual_net_saving = monthly_diff * 12
@@ -303,7 +332,6 @@ if 'active_address' in st.session_state:
         st.caption(f"Property energy diagnostics for **{active_property}**")
         
         epc = get_epc_details(active_property)
-        
         col_epc1, col_epc2, col_epc3, col_epc4 = st.columns(4)
         
         with col_epc1:
@@ -323,14 +351,13 @@ if 'active_address' in st.session_state:
             """, unsafe_allow_html=True)
 
         with col_epc3:
-            st.metric("Total Floor Area", f"{epc['floor_area']} m²", "Sufficient Space")
+            st.metric("Total Floor Area", f"{epc['floor_area']} m²")
             
         with col_epc4:
-            st.metric("Est. Annual Energy Spend", f"£{epc['est_annual_bill']:,}", "Gas & Electric")
+            st.metric("Est. Annual Energy Spend", f"£{epc['est_annual_bill']:,}")
 
         st.divider()
         st.markdown("### 🔍 Building Efficiency Breakdown")
-        
         col_det1, col_det2 = st.columns(2)
         with col_det1:
             st.write(f"🔥 **Heating System:** {epc['heating']}")
@@ -340,7 +367,7 @@ if 'active_address' in st.session_state:
             st.write(f"☀️ **Solar Potential:** High (Suitable for 3.8 kWp array)")
 
     # ===================================================================
-    # TAB 3: LAND REGISTRY SALES HISTORY (LIVE HM LAND REGISTRY API)
+    # TAB 3: LAND REGISTRY SALES HISTORY (DIRECT REST API)
     # ===================================================================
     with tab_sales:
         st.subheader("🏠 HM Land Registry Sold Price History")
@@ -349,7 +376,6 @@ if 'active_address' in st.session_state:
         df_sales = fetch_land_registry_sales(active_postcode)
         
         if not df_sales.empty:
-            # High level metrics
             col_s1, col_s2, col_s3 = st.columns(3)
             with col_s1:
                 st.metric("Total Sales Recorded", len(df_sales))
@@ -362,7 +388,6 @@ if 'active_address' in st.session_state:
                 
             st.divider()
             
-            # Formatted table
             df_display = df_sales.copy()
             df_display['Price'] = df_display['Price'].apply(lambda x: f"£{x:,}")
             
