@@ -14,17 +14,16 @@ postcode_input = st.text_input("Enter a UK Postcode:", "YO43 4EG")
 if st.button("Scan Address"):
     st.info(f"Scanning data for {postcode_input}...")
     
-    # 1. Standardize Postcode Format (e.g., ensure correct spacing: YO43 4EG)
+    # 1. Standardize Postcode Format (Ensuring uppercase and correct single space)
     clean_postcode = postcode_input.strip().upper()
     if len(clean_postcode) >= 5 and " " not in clean_postcode:
-        # Insert space before the last 3 characters if missing
         clean_postcode = f"{clean_postcode[:-3]} {clean_postcode[-3:]}"
     
-    # 2. URL Encode the postcode (turns 'YO43 4EG' into 'YO43%204EG')
+    # 2. URL Encode space to %20
     encoded_postcode = urllib.parse.quote(clean_postcode)
     
-    # Land Registry API Endpoint
-    url = f"https://landregistry.data.gov.uk/data/ppi/transaction-record.json?postcode={encoded_postcode}"
+    # 3. Correct HM Land Registry API Parameter: propertyAddress.postcode
+    url = f"https://landregistry.data.gov.uk/data/ppi/transaction-record.json?propertyAddress.postcode={encoded_postcode}&_pageSize=50"
     
     try:
         response = requests.get(url, headers={'Accept': 'application/json'})
@@ -36,18 +35,23 @@ if st.button("Scan Address"):
                 st.success(f"Found {len(results)} historic property transactions for {clean_postcode}!")
                 
                 records = []
-                for item in results[:10]:
+                for item in results:
                     paon = item.get('propertyAddress', {}).get('paon', '')
+                    saon = item.get('propertyAddress', {}).get('saon', '')
                     street = item.get('propertyAddress', {}).get('street', '')
+                    
+                    # Combine flat/house number & street
+                    address_str = f"{saon} {paon} {street}".strip()
+                    
                     records.append({
                         "Price": f"£{item.get('pricePaid', 0):,}",
                         "Date": item.get('transactionDate', 'N/A'),
-                        "Address": f"{paon} {street}".strip()
+                        "Address": address_str
                     })
                 
                 st.table(records)
             else:
-                st.warning(f"No sales history returned by Land Registry for '{clean_postcode}'. Try a nearby postcode like 'LS1 4AP' or 'YO43 3GA' to test.")
+                st.warning(f"No sales history returned by Land Registry for '{clean_postcode}'.")
         else:
             st.error(f"API returned status code: {response.status_code}")
     except Exception as e:
