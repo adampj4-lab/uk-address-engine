@@ -61,7 +61,7 @@ st.markdown("""
         margin-right: 5px;
     }
 </style>
-""", unsafe_allow_html=unsafe_allow_html)
+""", unsafe_allow_html=True)
 
 # -------------------------------------------------------------------
 # CONFIG & STATE INITIALIZATION
@@ -220,7 +220,7 @@ if 'active_address' in st.session_state:
 
         st.markdown("### 🏷️ Top Available Switch Deals")
         
-        # 3. Individual Styled Card UI for Deals (Replacing standard table)
+        # 3. Individual Styled Card UI for Deals
         for d in deals:
             monthly_saving = max(0.0, current_bill - d['Cost'])
             saving_text = f"Save £{monthly_saving:.2f}/mo" if monthly_saving > 0 else "Base Rate"
@@ -242,7 +242,7 @@ if 'active_address' in st.session_state:
                     </div>
                 </div>
             </div>
-            """, unsafe_allow_html=unsafe_allow_html)
+            """, unsafe_allow_html=True)
 
     # ===================================================================
     # TAB 2 & 3 PLACEHOLDERS
