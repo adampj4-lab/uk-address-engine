@@ -330,11 +330,12 @@ if 'active_address' in st.session_state:
     
     st.info(f"🏠 **Active Property:** {active_property}, {active_postcode}")
     
-    tab_broadband, tab_tv, tab_energy, tab_sales, tab_banking = st.tabs([
+    tab_broadband, tab_tv, tab_energy, tab_water, tab_sales, tab_banking = st.tabs([
         "🌐 Broadband", 
         "📺 TV & Streaming",
-        "⚡ Energy & EPC Rating", 
-        "🏠 Sales History & Valuation", 
+        "⚡ Energy & EPC",
+        "💧 Water & Utilities",
+        "🏠 Sales History", 
         "💰 Cash & Savings"
     ])
     
@@ -440,13 +441,12 @@ if 'active_address' in st.session_state:
             """, unsafe_allow_html=True)
 
     # ===================================================================
-    # TAB 2: TV, SPORTS & STREAMING AUDIT (SEPARATED USAGE)
+    # TAB 2: TV, SPORTS & STREAMING AUDIT
     # ===================================================================
     with tab_tv:
         st.subheader("📺 Television, Sports & Streaming Audit")
         st.caption(f"Active entertainment contract & actual usage audit for **{active_property}**")
 
-        # 1. Main Provider & Contract
         st.markdown("#### 1️⃣ Current Contracted Packages")
         col_tv1, col_tv2, col_tv3 = st.columns([1.2, 1, 2.5])
         with col_tv1:
@@ -456,10 +456,9 @@ if 'active_address' in st.session_state:
         with col_tv3:
             tv_contract = st.selectbox("Contract Expiry / Status:", ["Monthly Rolling / No Contract", "In Contract", "Expiring within 30 Days"], key="tv_contract")
 
-        # 2. Actual Content Usage Audit (Split Series vs Movies)
         st.divider()
-        st.markdown("#### 2️⃣ Real Household Viewing Audit (What Do You Actually Watch?)")
-        st.caption("Select actual viewing habits to isolate redundant channel packs (e.g. paying for Sky Cinema when you only watch series on apps).")
+        st.markdown("#### 2️⃣ Real Household Viewing Audit")
+        st.caption("Select actual viewing habits to isolate redundant channel packs.")
 
         col_use1, col_use2 = st.columns(2)
         with col_use1:
@@ -511,63 +510,8 @@ if 'active_address' in st.session_state:
         with col_m3:
             st.metric("Combined Monthly Spend", f"£{total_media_spend:.2f} / mo", delta=f"£{total_media_spend * 12:.2f} / yr")
 
-        st.markdown("---")
-        st.markdown("### 🏷️ Usage-Matched Media Recommendations")
-
-        # Dynamic Recommendation logic based on viewing habits
-        if not watch_movies and tv_bill > 40:
-            st.warning("⚠️ **Bundle Waste Alert:** You are paying for a premium traditional TV package but do **not** watch dedicated movie channels. You are likely paying for padded channel bundles you don't use.")
-
-        tv_deals = [
-            {
-                "Name": "NOW Sports + Boost (Shared/Split Membership)",
-                "Cost": 11.00,
-                "Type": "No Contract / Monthly Flex",
-                "Perks": "Full 1080p HD, 50fps sports streaming across devices without Sky Q box fees",
-                "Fit": "Optimal for lean sports viewing"
-            },
-            {
-                "Name": "Sky Stream Essential + Sky Sports",
-                "Cost": 46.00,
-                "Type": "18-Month Contract",
-                "Perks": "Includes Netflix, free dishless puck hardware, all Sky channels in HD",
-                "Fit": "Best traditional cable replacement"
-            },
-            {
-                "Name": "Virgin Stream Box (Flex TV)",
-                "Cost": 35.00,
-                "Type": "Monthly Rolling",
-                "Perks": "10% bill credit back on active streaming subscriptions",
-                "Fit": "Great if combined with Virgin broadband"
-            }
-        ]
-
-        for td in tv_deals:
-            diff = total_media_spend - td['Cost']
-            financial_text = f"Save £{diff:.2f}/mo vs current total" if diff > 0 else f"Alternative setup option"
-            financial_color = "#16a34a" if diff > 0 else "#0369a1"
-
-            st.markdown(f"""
-            <div class="deal-card">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div class="deal-title">{td['Name']}</div>
-                        <div style="margin-top: 6px;">
-                            <span class="badge">{td['Type']}</span>
-                            <span class="badge badge-speed">📺 {td['Fit']}</span>
-                        </div>
-                        <div style="font-size: 0.85rem; color: #64748b; margin-top: 8px;">🎁 {td['Perks']}</div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div class="deal-price">£{td['Cost']:.2f} <span style="font-size: 0.8rem; font-weight: normal; color: #64748b;">/mo</span></div>
-                        <div style="font-size: 0.85rem; font-weight: 700; color: {financial_color};">{financial_text}</div>
-                    </div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
     # ===================================================================
-    # TAB 3: UNIFIED ENERGY & EPC OPTIMIZATION
+    # TAB 3: ENERGY & EPC RATING
     # ===================================================================
     with tab_energy:
         st.subheader("⚡ Property Efficiency & Tariff Audit")
@@ -575,9 +519,7 @@ if 'active_address' in st.session_state:
         
         epc = fetch_real_epc_data(active_postcode, active_property)
         
-        # 1. Building Infrastructure Cards
         col_epc1, col_epc2, col_epc3, col_epc4 = st.columns(4)
-        
         with col_epc1:
             st.markdown(f"""
             <div class="epc-box epc-{epc['current_rating']}">
@@ -585,7 +527,6 @@ if 'active_address' in st.session_state:
                 <div style="font-size: 0.8rem; font-weight: normal;">Current EPC Band</div>
             </div>
             """, unsafe_allow_html=True)
-            
         with col_epc2:
             st.markdown(f"""
             <div class="epc-box epc-{epc['potential_rating']}">
@@ -593,28 +534,12 @@ if 'active_address' in st.session_state:
                 <div style="font-size: 0.8rem; font-weight: normal;">Potential Band</div>
             </div>
             """, unsafe_allow_html=True)
-
         with col_epc3:
             st.metric("Total Floor Area", f"{epc['floor_area']} m²")
-            
         with col_epc4:
             st.metric("Est. Building Running Cost", f"£{epc['est_annual_bill']:,} / yr")
 
         st.divider()
-        
-        # 2. Building Efficiency Diagnostics
-        st.markdown("### 🔍 Infrastructure Diagnostics")
-        col_det1, col_det2 = st.columns(2)
-        with col_det1:
-            st.write(f"🔥 **Main Heating:** {epc['heating']}")
-            st.write(f"🪟 **Glazing:** {epc['glazing']}")
-        with col_det2:
-            st.write(f"💡 **Lighting Efficiency:** {epc['lighting']}")
-            st.write(f"☀️ **Solar Array Potential:** Suitable for 3.8 kWp (~£450/yr generation savings)")
-
-        st.divider()
-
-        # 3. Interactive Multi-Fuel Energy Audit
         st.markdown("### 💰 Household Fuel & Tariff Audit")
         
         col_setup1, col_setup2 = st.columns([3, 1])
@@ -623,93 +548,61 @@ if 'active_address' in st.session_state:
         with col_setup2:
             has_ev = st.checkbox("🔌 EV / Plug-In Hybrid", value=True)
 
-        elec_supplier, elec_bill, gas_supplier, gas_bill = "Octopus Energy", 90.0, "Octopus Energy", 55.0
-
         if "Electricity" in fuel_setup:
             st.caption("⚡ **Electricity Package**")
             col_el1, col_el2, col_el3 = st.columns([1.2, 1, 2.5])
             with col_el1:
-                elec_supplier = st.selectbox("Supplier:", ["Octopus Energy", "British Gas", "E.ON Next", "OVO Energy", "EDF Energy", "Other"], key="elec_sup")
+                st.selectbox("Supplier:", ["Octopus Energy", "British Gas", "E.ON Next", "OVO Energy", "EDF Energy", "Other"], key="elec_sup")
             with col_el2:
-                elec_bill = st.number_input("Bill (£/mo):", min_value=10.0, max_value=600.0, value=90.0, step=5.0, key="elec_cost")
+                st.number_input("Bill (£/mo):", min_value=10.0, max_value=600.0, value=90.0, step=5.0, key="elec_cost")
             with col_el3:
-                elec_tariff_type = st.selectbox("Tariff Type:", ["EV Smart Tariff (Intelligent Octopus)", "Standard Variable", "Fixed Rate"], key="elec_type")
+                st.selectbox("Tariff Type:", ["EV Smart Tariff (Intelligent Octopus)", "Standard Variable", "Fixed Rate"], key="elec_type")
 
         if "Gas" in fuel_setup:
             st.caption("🔥 **Gas Package**")
             col_g1, col_g2, col_g3 = st.columns([1.2, 1, 2.5])
             with col_g1:
-                gas_supplier = st.selectbox("Supplier:", ["Octopus Energy", "British Gas", "E.ON Next", "OVO Energy", "EDF Energy", "Other"], key="gas_sup")
+                st.selectbox("Supplier:", ["Octopus Energy", "British Gas", "E.ON Next", "OVO Energy", "EDF Energy", "Other"], key="gas_sup")
             with col_g2:
-                gas_bill = st.number_input("Bill (£/mo):", min_value=10.0, max_value=600.0, value=55.0, step=5.0, key="gas_cost")
+                st.number_input("Bill (£/mo):", min_value=10.0, max_value=600.0, value=55.0, step=5.0, key="gas_cost")
             with col_g3:
-                gas_tariff_type = st.selectbox("Tariff Type:", ["Standard Variable", "Fixed Rate"], key="gas_type")
-
-        total_annual_spend = (elec_bill if "Electricity" in fuel_setup else 0) * 12 + (gas_bill if "Gas" in fuel_setup else 0) * 12
-        
-        st.markdown("---")
-        st.markdown("### 🏷️ Recommended Market Tariffs")
-        
-        tariffs = []
-        
-        if has_ev:
-            tariffs.append({
-                "Name": "Intelligent Octopus Go (EV/PHEV)",
-                "Fuel": "Electricity Only",
-                "AnnualCost": 890.00,
-                "Perks": "7p–8p/kWh Overnight Charging Window / Smart Dispatch",
-                "Fit": "Optimal for Omoda 9, EVs, or battery storage"
-            })
-        
-        tariffs.extend([
-            {
-                "Name": "Octopus Fixed 12M (Elec + Gas Split)",
-                "Fuel": "Elec & Gas",
-                "AnnualCost": 1520.00,
-                "Perks": "100% Green Electricity / No Exit Fees",
-                "Fit": "Best for price stability across both fuels"
-            },
-            {
-                "Name": "E.ON Next Fixed 15M",
-                "AnnualCost": 1545.00,
-                "Fuel": "Elec & Gas",
-                "Perks": "Fixed unit rates through winter",
-                "Fit": "Long-term protection"
-            }
-        ])
-        
-        for t in tariffs:
-            annual_diff = total_annual_spend - t['AnnualCost']
-            monthly_saving = annual_diff / 12
-            
-            if annual_diff > 0:
-                t_financial = f"Save £{annual_diff:.2f}/yr (£{monthly_saving:.2f}/mo)"
-                t_color = "#16a34a"
-            else:
-                t_financial = f"+£{abs(annual_diff):.2f}/yr compared to combined bill"
-                t_color = "#d97706"
-
-            st.markdown(f"""
-            <div class="deal-card">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div class="deal-title">{t['Name']}</div>
-                        <div style="margin-top: 6px;">
-                            <span class="badge">{t['Fuel']}</span>
-                            <span class="badge badge-speed">⚡ {t['Fit']}</span>
-                        </div>
-                        <div style="font-size: 0.85rem; color: #64748b; margin-top: 8px;">🎁 {t['Perks']}</div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div class="deal-price">£{t['AnnualCost']/12:.2f} <span style="font-size: 0.8rem; font-weight: normal; color: #64748b;">/mo</span></div>
-                        <div style="font-size: 0.85rem; font-weight: 700; color: {t_color};">{t_financial}</div>
-                    </div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+                st.selectbox("Tariff Type:", ["Standard Variable", "Fixed Rate"], key="gas_type")
 
     # ===================================================================
-    # TAB 4: LAND REGISTRY SALES HISTORY
+    # TAB 4: WATER & UTILITIES
+    # ===================================================================
+    with tab_water:
+        st.subheader("💧 Water & Sewerage Utility Audit")
+        st.caption(f"Water meter status and tariff efficiency for **{active_property}**")
+
+        col_w1, col_w2 = st.columns(2)
+        with col_w1:
+            water_meter_status = st.radio("Water Meter Status:", ["Has Water Meter Installed", "Unmeasured (Rateable Value / No Meter)", "Unknown"], horizontal=True)
+        with col_w2:
+            water_bill = st.number_input("Current Water & Sewerage Bill (£/yr):", min_value=100.0, max_value=1500.0, value=450.0, step=25.0, key="water_cost")
+
+        if water_meter_status == "Unmeasured (Rateable Value / No Meter)":
+            st.markdown("---")
+            st.markdown("#### 🏠 Property Occupancy Audit (Meter Switch Eligibility)")
+            st.caption("Under UK water regulations, unmeasured properties can request a **free water meter installation**. As a general rule, if the number of bedrooms equals or exceeds the number of occupants, switching to a meter almost always saves money.")
+
+            col_oc1, col_oc2, col_oc3 = st.columns(3)
+            with col_oc1:
+                bedrooms = st.number_input("Number of Bedrooms:", min_value=1, max_value=10, value=3, step=1)
+            with col_oc2:
+                occupants = st.number_input("Number of Occupants:", min_value=1, max_value=10, value=2, step=1)
+            with col_oc3:
+                st.write("")
+                st.write("")
+                if bedrooms >= occupants:
+                    st.success("✅ **Meter Switch Recommended:** Bedrooms ≥ Occupants. High probability of saving on a meter.")
+                else:
+                    st.info("ℹ️ **Low Occupancy Density:** Unmeasured rateable value may be cheaper if heavy water usage per person occurs.")
+        else:
+            st.success("💡 **Metered Property:** You are billed directly on actual volumetric consumption (m³). Ensure you submit meter readings every 6 months to avoid estimated bill spikes.")
+
+    # ===================================================================
+    # TAB 5: LAND REGISTRY SALES HISTORY
     # ===================================================================
     with tab_sales:
         st.subheader("🏠 HM Land Registry Sold Price History")
@@ -756,7 +649,7 @@ if 'active_address' in st.session_state:
             st.warning(f"No recent Land Registry transaction records found for postcode {active_postcode}.")
 
     # ===================================================================
-    # TAB 5: CASH & SAVINGS
+    # TAB 6: CASH & SAVINGS
     # ===================================================================
     with tab_banking:
         st.subheader("💰 Cash & Savings Optimization")
