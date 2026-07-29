@@ -12,26 +12,48 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Styling
+# Custom Styling (CSS for clean cards, badges, and layout)
 st.markdown("""
 <style>
     .stApp { background-color: #f8f9fa; }
+    
+    /* Deal & Sales Card Styling */
     .deal-card {
         background-color: #ffffff;
-        padding: 18px;
-        border-radius: 10px;
+        padding: 18px 22px;
+        border-radius: 12px;
         border-left: 5px solid #2563eb;
         box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-        margin-bottom: 15px;
+        margin-bottom: 14px;
+        border-top: 1px solid #f1f5f9;
+        border-right: 1px solid #f1f5f9;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    .sales-card {
+        background-color: #ffffff;
+        padding: 16px 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+        margin-bottom: 12px;
+        border: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
     .deal-title { font-size: 1.1rem; font-weight: 700; color: #1e293b; }
     .deal-price { font-size: 1.4rem; font-weight: 800; color: #16a34a; }
+    
+    /* Badges */
     .badge {
-        display: inline-block; padding: 4px 8px; border-radius: 6px;
+        display: inline-block; padding: 4px 10px; border-radius: 6px;
         font-size: 0.8rem; font-weight: 600; background-color: #e0f2fe;
-        color: #0369a1; margin-right: 5px;
+        color: #0369a1; margin-right: 6px;
     }
     .badge-speed { background-color: #f0fdf4; color: #166534; }
+    .badge-tenure { background-color: #fef3c7; color: #92400e; }
+    .badge-type { background-color: #f3e8ff; color: #6b21a8; }
+    
+    /* EPC Styling */
     .epc-box {
         padding: 15px; border-radius: 10px; color: white; font-weight: bold;
         text-align: center; font-size: 1.8rem; margin-bottom: 10px;
@@ -43,6 +65,8 @@ st.markdown("""
     .epc-E { background-color: #ef7c1e; }
     .epc-F { background-color: #e36125; }
     .epc-G { background-color: #d72229; }
+    
+    /* Disclaimer */
     .disclaimer-box {
         background-color: #fffbebfb;
         border: 1px solid #fef3c7;
@@ -69,7 +93,7 @@ if 'scanned_postcode' not in st.session_state:
 def natural_sort_key(s):
     return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s)]
 
-# Clean extractor for complex RDF JSON values returned by Land Registry API
+# Clean extractor for RDF JSON structures returned by Land Registry
 def extract_clean_text(val, fallback="Residential"):
     if isinstance(val, list) and len(val) > 0:
         val = val[0]
@@ -381,7 +405,7 @@ if 'active_address' in st.session_state:
             st.write(f"☀️ **Solar Potential:** High (Suitable for 3.8 kWp array)")
 
     # ===================================================================
-    # TAB 3: LAND REGISTRY SALES HISTORY (PARSED & STYLIZED)
+    # TAB 3: LAND REGISTRY SALES HISTORY (CUSTOM HTML CARDS)
     # ===================================================================
     with tab_sales:
         st.subheader("🏠 HM Land Registry Sold Price History")
@@ -411,22 +435,26 @@ if 'active_address' in st.session_state:
             
             st.markdown("### 📜 Registered Transactions")
             
-            # Formatted Table view with clean text
-            df_display = df_sales[['Address', 'Price', 'Date', 'Type', 'Tenure']].copy()
-            df_display['Price'] = df_display['Price'].apply(lambda x: f"£{x:,}")
-            
-            st.dataframe(
-                df_display, 
-                use_container_width=True, 
-                hide_index=True,
-                column_config={
-                    "Address": st.column_config.TextColumn("Property Address"),
-                    "Price": st.column_config.TextColumn("Sold Price"),
-                    "Date": st.column_config.TextColumn("Sale Date"),
-                    "Type": st.column_config.TextColumn("Property Type"),
-                    "Tenure": st.column_config.TextColumn("Tenure")
-                }
-            )
+            # Rendering individual custom visual cards for each property sale
+            for _, row in df_sales.iterrows():
+                # Formatted UK Date
+                formatted_date = row['Date_Parsed'].strftime("%d %b %Y") if pd.notnull(row['Date_Parsed']) else row['Date']
+                
+                st.markdown(f"""
+                <div class="sales-card">
+                    <div>
+                        <div style="font-size: 1.05rem; font-weight: 700; color: #1e293b;">{row['Address']}</div>
+                        <div style="margin-top: 6px;">
+                            <span class="badge badge-type">🏠 {row['Type']}</span>
+                            <span class="badge badge-tenure">📜 {row['Tenure']}</span>
+                            <span style="font-size: 0.85rem; color: #64748b; margin-left: 8px;">🗓️ Sold: {formatted_date}</span>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 1.35rem; font-weight: 800; color: #16a34a;">£{row['Price']:,}</div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
         else:
             st.warning(f"No recent Land Registry transaction records found for postcode {active_postcode}.")
 
