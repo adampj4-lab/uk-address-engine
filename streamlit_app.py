@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import re
+import datetime
 
 # Page Configuration
 st.set_page_config(
@@ -10,25 +11,12 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for styling cards, badges, and layout
+# Custom CSS
 st.markdown("""
 <style>
-    /* Global Container Styling */
     .stApp {
         background-color: #f8f9fa;
     }
-    
-    /* Card Container */
-    .card {
-        background-color: #ffffff;
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        border: 1px solid #e9ecef;
-        margin-bottom: 20px;
-    }
-    
-    /* Custom Provider Card */
     .deal-card {
         background-color: #ffffff;
         padding: 18px;
@@ -37,19 +25,16 @@ st.markdown("""
         box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         margin-bottom: 15px;
     }
-    
     .deal-title {
         font-size: 1.1rem;
         font-weight: 700;
         color: #1e293b;
     }
-    
     .deal-price {
         font-size: 1.4rem;
         font-weight: 800;
         color: #16a34a;
     }
-    
     .badge {
         display: inline-block;
         padding: 4px 8px;
@@ -59,6 +44,20 @@ st.markdown("""
         background-color: #e0f2fe;
         color: #0369a1;
         margin-right: 5px;
+    }
+    .badge-speed {
+        background-color: #f0fdf4;
+        color: #166534;
+    }
+    .disclaimer-box {
+        background-color: #fffbebfb;
+        border: 1px solid #fef3c7;
+        border-left: 4px solid #f59e0b;
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        color: #92400e;
+        margin-bottom: 20px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -76,9 +75,6 @@ if 'scanned_postcode' not in st.session_state:
 def natural_sort_key(s):
     return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s)]
 
-# -------------------------------------------------------------------
-# CACHED ADDRESS FETCH (24hr TTL)
-# -------------------------------------------------------------------
 @st.cache_data(ttl=86400)
 def get_cached_addresses(clean_postcode):
     url = f"https://api.ideal-postcodes.co.uk/v1/postcodes/{clean_postcode}?api_key={IDEAL_POSTCODES_API_KEY}"
@@ -134,7 +130,7 @@ with st.sidebar:
             st.success("Target set!")
 
 # -------------------------------------------------------------------
-# MAIN HEADER & DASHBOARD
+# MAIN DASHBOARD
 # -------------------------------------------------------------------
 st.title("⚡ Household Optimization Engine")
 st.caption("Real-time property infrastructure scanning & cost optimization portal.")
@@ -143,18 +139,13 @@ if 'active_address' in st.session_state:
     active_property = st.session_state['active_address']
     active_postcode = st.session_state['scanned_postcode']
     
-    # Active Context Banner
     st.info(f"🏠 **Active Property:** {active_property}, {active_postcode}")
     
     tab_broadband, tab_energy, tab_banking = st.tabs(["🌐 Broadband & Infrastructure", "⚡ Energy & EPC", "💰 Cash & Savings"])
     
-    # ===================================================================
-    # TAB 1: HOME BROADBAND OPTIMIZATION (STYLIZED)
-    # ===================================================================
     with tab_broadband:
         st.subheader("🌐 Network Infrastructure Availability")
         
-        # 1. Styled Infrastructure Metrics
         col1, col2, col3, col4 = st.columns(4)
         with col1:
             st.metric(label="Openreach FTTP", value="Ready", delta="1,000 Mbps")
@@ -167,86 +158,141 @@ if 'active_address' in st.session_state:
 
         st.divider()
 
-        # 2. Audit Form Container
-        st.markdown("### 📊 Household Contract Audit")
+        # -------------------------------------------------------------------
+        # AUDIT FORM
+        # -------------------------------------------------------------------
+        st.markdown("### 📊 Household Contract & Speed Audit")
         
-        with st.container():
-            col_input1, col_input2, col_input3 = st.columns(3)
-            with col_input1:
-                current_provider = st.selectbox(
-                    "Current Provider:",
-                    ["BT Broadband", "Sky Broadband", "Virgin Media", "TalkTalk", "Vodafone", "Plusnet", "Other"]
-                )
-            with col_input2:
-                current_bill = st.number_input("Current Monthly Payment (£/mo):", min_value=15.0, max_value=120.0, value=44.0, step=1.0)
-            with col_input3:
-                contract_status = st.selectbox("Contract Status:", ["Out of Contract (Rolling)", "In Contract", "Expiring within 30 Days"])
+        col_in1, col_in2, col_in3 = st.columns(3)
+        with col_in1:
+            current_provider = st.selectbox(
+                "Current Provider:",
+                ["Vodafone", "BT Broadband", "Sky Broadband", "Virgin Media", "TalkTalk", "Plusnet", "EE", "Other"]
+            )
+        with col_in2:
+            current_bill = st.number_input("Current Bill (£/mo):", min_value=10.0, max_value=150.0, value=30.0, step=1.0)
+        with col_in3:
+            current_speed = st.number_input("Current Speed (Mbps):", min_value=10, max_value=2000, value=65, step=25)
 
-        # Target Deals
+        col_in4, col_in5 = st.columns(2)
+        with col_in4:
+            contract_status = st.selectbox("Contract Status:", ["In Contract", "Out of Contract (Rolling)", "Expiring within 30 Days"])
+        
+        # Calculate Term & Indicative Exit Fee
+        est_exit_fee = 0.0
+        months_left = 0.0
+        
+        if contract_status == "In Contract":
+            with col_in5:
+                expiry_date = st.date_input(
+                    "Contract Expiry Date (if known):", 
+                    value=datetime.date(2027, 2, 5)
+                )
+            
+            today = datetime.date.today()
+            if expiry_date > today:
+                days_left = (expiry_date - today).days
+                months_left = round(days_left / 30.44, 1)
+                
+                # Formula: Bill x 0.80 (VAT/wholesale discount) x remaining months
+                est_exit_fee = round((current_bill * 0.80) * months_left, 2)
+                
+                st.caption(f"⏱️ **Contract Term:** ~{months_left} months remaining. Indicative exit fee: **~£{est_exit_fee:.2f}**")
+        else:
+            with col_in5:
+                st.write("")
+
+        # Deals Database
         deals = [
             {
+                "Provider": "EE Full Fibre 900",
+                "Speed_Mbps": 900,
+                "Speed_Display": "900 Mbps",
+                "Cost": 25.99,
+                "Network": "Openreach FTTP",
+                "Switch_Credit": 100.00,
+                "Perks": "£100 Switch Credit / Contract Buyout"
+            },
+            {
                 "Provider": "Vodafone Full Fibre 900",
-                "Speed": "910 Mbps",
+                "Speed_Mbps": 910,
+                "Speed_Display": "910 Mbps",
                 "Cost": 32.00,
                 "Network": "Openreach / CityFibre",
-                "Perks": "Free setup, £100 Amazon Gift Card"
+                "Switch_Credit": 100.00,
+                "Perks": "Up to £100 Switch Credit / Gift Card"
             },
             {
-                "Provider": "Virgin Media M500",
-                "Speed": "516 Mbps",
-                "Cost": 30.00,
-                "Network": "Virgin Media Cable",
-                "Perks": "No setup fee, price locked for 18 mo"
-            },
-            {
-                "Provider": "Sky Full Fibre 300",
-                "Speed": "300 Mbps",
-                "Cost": 27.00,
-                "Network": "Openreach FTTP",
-                "Perks": "Wall-to-wall WiFi Guarantee"
+                "Provider": "Virgin Media Gig1",
+                "Speed_Mbps": 1130,
+                "Speed_Display": "1,130 Mbps",
+                "Cost": 39.00,
+                "Network": "Virgin Cable / Nexfibre",
+                "Switch_Credit": 100.00,
+                "Perks": "£100 Bill Credit towards contract buyout"
             }
         ]
 
-        # Calculate savings
-        best_deal_monthly = min(d['Cost'] for d in deals)
-        annual_savings = max(0.0, (current_bill - best_deal_monthly) * 12)
-
         st.markdown("---")
+        st.markdown("### 🏷️ Market Options vs Your Current Package")
         
-        if contract_status != "In Contract" and annual_savings > 0:
-            st.success(f"🎉 **Switch Recommendation Available:** Moving to a top-tier market deal saves **£{annual_savings:,.2f} / year** (£{current_bill - best_deal_monthly:.2f}/month).")
-        elif contract_status == "In Contract":
-            st.info("ℹ️ You are currently in contract. Set a reminder 30 days before expiration to lock in a new rate.")
+        # PROMINENT DISCLAIMER BOX
+        st.markdown("""
+        <div class="disclaimer-box">
+            ⚠️ <strong>Disclaimer on Early Termination Fees:</strong> Contract exit costs and switch credit absorbency shown below are <strong>estimates for guidance only</strong> based on standard UK industry calculations (less VAT & non-consumed service charges). Always verify your exact early exit fee directly with your current provider before placing a switch order.
+        </div>
+        """, unsafe_allow_html=True)
 
-        st.markdown("### 🏷️ Top Available Switch Deals")
-        
-        # 3. Individual Styled Card UI for Deals
         for d in deals:
-            monthly_saving = max(0.0, current_bill - d['Cost'])
-            saving_text = f"Save £{monthly_saving:.2f}/mo" if monthly_saving > 0 else "Base Rate"
+            # 1. Price Differential
+            monthly_diff = current_bill - d['Cost']
+            annual_net_saving = monthly_diff * 12
+
+            # 2. Speed Differential
+            speed_diff = d['Speed_Mbps'] - current_speed
+            speed_text = f"🚀 +{speed_diff} Mbps Faster" if speed_diff > 0 else f"📉 {abs(speed_diff)} Mbps Slower"
+
+            # 3. Buyout Credit Math against Indicative ETF
+            net_switch_cost = max(0.0, est_exit_fee - d['Switch_Credit'])
             
+            buyout_html = ""
+            if contract_status == "In Contract" and est_exit_fee > 0:
+                if d['Switch_Credit'] >= est_exit_fee:
+                    buyout_html = f"<div style='font-size: 0.85rem; color: #16a34a; font-weight: 600; margin-top: 6px;'>✅ Switch Credit (£{d['Switch_Credit']:.0f}) should cover your ~£{est_exit_fee:.2f} estimated exit fee!</div>"
+                else:
+                    buyout_html = f"<div style='font-size: 0.85rem; color: #d97706; font-weight: 600; margin-top: 6px;'>⚡ Credit covers £{d['Switch_Credit']:.0f} of exit fee (Est. net cost to leave now: £{net_switch_cost:.2f})</div>"
+
+            # Financial Verdict Formatting
+            if monthly_diff > 0:
+                financial_text = f"Save £{monthly_diff:.2f}/mo (£{annual_net_saving:.2f}/yr)"
+                financial_color = "#16a34a"
+            elif monthly_diff < 0:
+                financial_text = f"+£{abs(monthly_diff):.2f}/mo for speed upgrade"
+                financial_color = "#d97706"
+            else:
+                financial_text = "Same Monthly Cost"
+                financial_color = "#475569"
+
             st.markdown(f"""
             <div class="deal-card">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
                         <div class="deal-title">{d['Provider']}</div>
-                        <div style="margin-top: 5px;">
-                            <span class="badge">⚡ {d['Speed']}</span>
+                        <div style="margin-top: 6px;">
+                            <span class="badge badge-speed">{d['Speed_Display']} ({speed_text})</span>
                             <span class="badge">🌐 {d['Network']}</span>
                         </div>
                         <div style="font-size: 0.85rem; color: #64748b; margin-top: 8px;">🎁 {d['Perks']}</div>
+                        {buyout_html}
                     </div>
                     <div style="text-align: right;">
                         <div class="deal-price">£{d['Cost']:.2f} <span style="font-size: 0.8rem; font-weight: normal; color: #64748b;">/mo</span></div>
-                        <div style="font-size: 0.85rem; font-weight: 600; color: #16a34a;">{saving_text}</div>
+                        <div style="font-size: 0.85rem; font-weight: 700; color: {financial_color};">{financial_text}</div>
                     </div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
-    # ===================================================================
-    # TAB 2 & 3 PLACEHOLDERS
-    # ===================================================================
     with tab_energy:
         st.subheader("⚡ Energy & EPC Performance")
         st.metric("Current EPC Rating", "C (72)", "Potential: B (85)")
