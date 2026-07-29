@@ -69,8 +69,23 @@ if 'scanned_postcode' not in st.session_state:
 def natural_sort_key(s):
     return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s)]
 
+# Clean extractor for complex RDF JSON values returned by Land Registry API
+def extract_clean_text(val, fallback="Residential"):
+    if isinstance(val, list) and len(val) > 0:
+        val = val[0]
+    if isinstance(val, dict):
+        if '_Value' in val:
+            return str(val['_Value'])
+        if 'label' in val:
+            return str(val['label'])
+    elif isinstance(val, str):
+        if '/' in val:
+            return val.split('/')[-1]
+        return val
+    return fallback
+
 # -------------------------------------------------------------------
-# API CALL 1: ADDRESS LOOKUP (Royal Mail PAF via Ideal Postcodes)
+# API CALL 1: ADDRESS LOOKUP
 # -------------------------------------------------------------------
 @st.cache_data(ttl=86400)
 def get_cached_addresses(clean_postcode):
@@ -95,13 +110,11 @@ def get_cached_addresses(clean_postcode):
         return []
 
 # -------------------------------------------------------------------
-# API CALL 2: LAND REGISTRY SALES HISTORY (DIRECT REST JSON API)
+# API CALL 2: LAND REGISTRY SALES HISTORY (PARSED REST API)
 # -------------------------------------------------------------------
 @st.cache_data(ttl=86400)
 def fetch_land_registry_sales(postcode):
     clean_pc = postcode.strip().upper()
-    
-    # Direct REST API endpoint
     url = "https://landregistry.data.gov.uk/data/ppi/transaction-record.json"
     params = {
         "propertyAddress.postcode": clean_pc,
@@ -121,30 +134,31 @@ def fetch_land_registry_sales(postcode):
             
             for item in items:
                 addr = item.get("propertyAddress", {})
-                paon = addr.get("paon", "")
-                saon = addr.get("saon", "")
-                street = addr.get("street", "")
+                paon = extract_clean_text(addr.get("paon", ""), "")
+                saon = extract_clean_text(addr.get("saon", ""), "")
+                street = extract_clean_text(addr.get("street", ""), "")
                 
                 addr_parts = [p for p in [saon, paon, street] if p]
                 full_address = " ".join(addr_parts)
                 
-                p_type = item.get("propertyType", {})
-                p_label = p_type.get("label", "Residential") if isinstance(p_type, dict) else str(p_type).split("/")[-1]
+                raw_type = extract_clean_text(item.get("propertyType", {}), "Residential")
+                raw_tenure = extract_clean_text(item.get("estateType", {}), "Freehold")
                 
-                t_type = item.get("estateType", {})
-                t_label = t_type.get("label", "Freehold") if isinstance(t_type, dict) else str(t_type).split("/")[-1]
+                raw_date = item.get("transactionDate", "")
+                clean_date = raw_date[:10] if isinstance(raw_date, str) else ""
                 
                 records.append({
                     "Address": full_address,
                     "Price": int(item.get("pricePaid", 0)),
-                    "Date": item.get("transactionDate", "")[:10],
-                    "Type": str(p_label).replace("-", " ").title(),
-                    "Tenure": str(t_label).replace("-", " ").title()
+                    "Date": clean_date,
+                    "Type": str(raw_type).replace("-", " ").title(),
+                    "Tenure": str(raw_tenure).replace("-", " ").title()
                 })
             
             df = pd.DataFrame(records)
             if not df.empty:
-                df = df.sort_values(by="Date", ascending=False)
+                df['Date_Parsed'] = pd.to_datetime(df['Date'], errors='coerce')
+                df = df.sort_values(by="Date_Parsed", ascending=False)
             return df
     except Exception as e:
         print(f"Land Registry REST API Error: {e}")
@@ -367,7 +381,7 @@ if 'active_address' in st.session_state:
             st.write(f"☀️ **Solar Potential:** High (Suitable for 3.8 kWp array)")
 
     # ===================================================================
-    # TAB 3: LAND REGISTRY SALES HISTORY (DIRECT REST API)
+    # TAB 3: LAND REGISTRY SALES HISTORY (PARSED & STYLIZED)
     # ===================================================================
     with tab_sales:
         st.subheader("🏠 HM Land Registry Sold Price History")
@@ -388,7 +402,17 @@ if 'active_address' in st.session_state:
                 
             st.divider()
             
-            df_display = df_sales.copy()
+            # Interactive Area Price Trend
+            st.markdown("### 📈 Postcode Price History Trend")
+            df_chart = df_sales.dropna(subset=['Date_Parsed']).sort_values('Date_Parsed')
+            if not df_chart.empty:
+                chart_data = df_chart.set_index('Date_Parsed')['Price']
+                st.line_chart(chart_data)
+            
+            st.markdown("### 📜 Registered Transactions")
+            
+            # Formatted Table view with clean text
+            df_display = df_sales[['Address', 'Price', 'Date', 'Type', 'Tenure']].copy()
             df_display['Price'] = df_display['Price'].apply(lambda x: f"£{x:,}")
             
             st.dataframe(
@@ -396,11 +420,11 @@ if 'active_address' in st.session_state:
                 use_container_width=True, 
                 hide_index=True,
                 column_config={
-                    "Address": "Property Address",
-                    "Price": "Sold Price",
-                    "Date": "Sale Date",
-                    "Type": "Property Type",
-                    "Tenure": "Tenure"
+                    "Address": st.column_config.TextColumn("Property Address"),
+                    "Price": st.column_config.TextColumn("Sold Price"),
+                    "Date": st.column_config.TextColumn("Sale Date"),
+                    "Type": st.column_config.TextColumn("Property Type"),
+                    "Tenure": st.column_config.TextColumn("Tenure")
                 }
             )
         else:
