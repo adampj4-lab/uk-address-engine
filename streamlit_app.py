@@ -17,17 +17,40 @@ st.markdown("""
 <style>
     .stApp { background-color: #f8f9fa; }
     
+    /* Constrain main deal cards width for tight UI */
+    .deal-card-container {
+        max-width: 950px;
+        margin: 0 auto 16px 0;
+    }
+    
     .deal-card {
         background-color: #ffffff;
         padding: 20px 24px;
         border-radius: 12px;
-        border-left: 5px solid #2563eb;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
         margin-bottom: 16px;
-        border-top: 1px solid #f1f5f9;
-        border-right: 1px solid #f1f5f9;
-        border-bottom: 1px solid #f1f5f9;
     }
+    
+    .brand-logo-box {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 1.1rem;
+        color: white;
+        margin-right: 14px;
+        flex-shrink: 0;
+    }
+    
+    .logo-ee { background-color: #007b85; }
+    .logo-youfibre { background-color: #000000; }
+    .logo-virgin { background-color: #e2001a; }
+    .logo-vodafone { background-color: #e60000; }
+
     .sales-card {
         background-color: #ffffff;
         padding: 16px 20px;
@@ -47,20 +70,21 @@ st.markdown("""
         border: 1px solid #e2e8f0;
         margin-bottom: 16px;
     }
-    .deal-title { font-size: 1.15rem; font-weight: 700; color: #1e293b; }
-    .deal-price { font-size: 1.5rem; font-weight: 800; color: #2563eb; }
+    
+    .deal-title { font-size: 1.15rem; font-weight: 800; color: #0f172a; }
+    .deal-price { font-size: 1.7rem; font-weight: 900; color: #000000; line-height: 1; }
     
     /* Price Steps Schedule Box */
     .price-steps-box {
         background-color: #f8fafc;
         border: 1px solid #e2e8f0;
         border-radius: 8px;
-        padding: 12px 16px;
-        margin-top: 12px;
-        margin-bottom: 12px;
+        padding: 10px 14px;
+        margin-top: 10px;
+        margin-bottom: 10px;
     }
-    .step-label { font-size: 0.8rem; color: #64748b; text-transform: uppercase; font-weight: 600; }
-    .step-val { font-size: 1.05rem; font-weight: 700; color: #0f172a; }
+    .step-label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 600; }
+    .step-val { font-size: 0.95rem; font-weight: 700; color: #0f172a; }
 
     /* Prevent metric label truncation/ellipsis */
     [data-testid="stMetricLabel"] {
@@ -73,46 +97,33 @@ st.markdown("""
         font-size: 1.8rem !important;
     }
 
-    /* Badges */
+    /* Uswitch Badges */
     .badge {
         display: inline-block; padding: 4px 10px; border-radius: 6px;
-        font-size: 0.8rem; font-weight: 600; background-color: #e0f2fe;
-        color: #0369a1; margin-right: 6px;
+        font-size: 0.78rem; font-weight: 700; margin-right: 6px; margin-top: 4px;
     }
-    .badge-speed { background-color: #f0fdf4; color: #166534; }
-    .badge-tenure { background-color: #fef3c7; color: #92400e; }
+    .badge-speed { background-color: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
     .badge-type { background-color: #f3e8ff; color: #6b21a8; }
     .badge-fixed { background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
-    
-    /* EPC Styling */
-    .epc-box {
-        padding: 15px; border-radius: 10px; color: white; font-weight: bold;
-        text-align: center; font-size: 1.8rem; margin-bottom: 10px;
-    }
-    .epc-A { background-color: #008054; }
-    .epc-B { background-color: #19b459; }
-    .epc-C { background-color: #8dd04a; }
-    .epc-D { background-color: #fcd100; color: #111; }
-    .epc-E { background-color: #ef7c1e; }
-    .epc-F { background-color: #e36125; }
-    .epc-G { background-color: #d72229; }
-    
+    .badge-perk { background-color: #fef08a; color: #854d0e; font-weight: 800; }
+    .badge-credit { background-color: #ffedd5; color: #9a3412; font-weight: 800; }
+
     /* Disclaimer */
     .disclaimer-box {
         background-color: #fffbeb;
         border: 1px solid #fef3c7;
         border-left: 4px solid #f59e0b;
-        padding: 12px 16px;
+        padding: 10px 14px;
         border-radius: 8px;
         font-size: 0.85rem;
         color: #92400e;
-        margin-top: 15px;
-        margin-bottom: 20px;
+        margin-top: 10px;
+        margin-bottom: 16px;
+        max-width: 950px;
     }
 
-    div[data-testid="stCheckbox"] {
-        margin-top: 28px;
-    }
+    /* Tighten Streamlit layout padding */
+    .block-container { padding-top: 1.5rem; padding-bottom: 2rem; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -384,7 +395,7 @@ if 'active_address' in st.session_state:
     tab_banking = tabs[7]
     
     # ===================================================================
-    # TAB 1: BROADBAND
+    # TAB 1: BROADBAND (TIGHT & COMPACT USWITCH UI)
     # ===================================================================
     with tab_broadband:
         st.subheader("🌐 Network Infrastructure Availability")
@@ -397,15 +408,15 @@ if 'active_address' in st.session_state:
         st.divider()
         st.markdown("### 📊 Household Contract & Speed Audit")
         
-        col_in1, col_in2, col_in3 = st.columns(3)
+        # Single tight inline row for inputs
+        col_in1, col_in2, col_in3, col_in4, col_in5 = st.columns([1.2, 1, 1, 1.2, 1.2])
+        
         with col_in1:
             current_provider = st.selectbox("Current Provider:", ["EE", "Vodafone", "BT Broadband", "Sky", "Virgin Media", "TalkTalk", "Other"])
         with col_in2:
             current_bill = st.number_input("Current Bill (£/mo):", min_value=10.0, max_value=150.0, value=30.0, step=1.0)
         with col_in3:
-            current_speed = st.number_input("Current Speed (Mbps):", min_value=10, max_value=2000, value=65, step=25)
-
-        col_in4, col_in5 = st.columns(2)
+            current_speed = st.number_input("Speed (Mbps):", min_value=10, max_value=2000, value=65, step=25)
         with col_in4:
             contract_status = st.selectbox("Contract Status:", ["In Contract", "Out of Contract (Rolling)", "Expiring within 30 Days"])
         
@@ -414,30 +425,33 @@ if 'active_address' in st.session_state:
         
         if contract_status == "In Contract":
             with col_in5:
-                expiry_date = st.date_input("Contract Expiry Date (if known):", value=datetime.date(2027, 2, 5), format="DD/MM/YYYY")
+                expiry_date = st.date_input("Expiry Date:", value=datetime.date(2027, 2, 5), format="DD/MM/YYYY")
             
             today = datetime.date.today()
             if expiry_date > today:
                 days_left = (expiry_date - today).days
                 months_left = round(days_left / 30.44, 1)
-                
                 calc_fee = round((current_bill * 0.80) * months_left, 2)
-                override_fee = st.checkbox("I know my exact provider exit fee quote")
                 
+                override_fee = st.checkbox("Exact quote fee", value=False)
                 if override_fee:
-                    est_exit_fee = st.number_input("Enter Exact Exit Fee (£):", min_value=0.0, value=65.00, step=5.0)
+                    est_exit_fee = st.number_input("Exact Exit Fee (£):", min_value=0.0, value=65.00, step=5.0)
                 else:
                     est_exit_fee = calc_fee
-                    st.caption(f"⏱️ **Contract Expiry:** {expiry_date.strftime('%d/%m/%Y')} (~{months_left} months remaining). Indicative exit fee: **~£{est_exit_fee:.2f}**")
+                st.caption(f"⏱️ **Exit Fee Estimate:** ~£{est_exit_fee:.2f} ({months_left} mos remaining)")
         else:
-            with col_in5: st.write("")
+            with col_in5:
+                st.write("")
 
+        # Deals dataset incorporating step-up pricing schedules across contract lifetime
         deals = [
             {
                 "Provider": "EE Full Fibre 1.6Gbps",
+                "Logo_Class": "logo-ee",
+                "Logo_Text": "EE",
                 "Best_Source": "Via Uswitch",
                 "Speed_Mbps": 1600,
-                "Speed_Display": "1,600 Mbps",
+                "Speed_Display": "1600 Mbps",
                 "Network": "Openreach FTTP",
                 "Cost_Current": 33.99,
                 "Cost_April_2027": 37.99,
@@ -445,13 +459,16 @@ if 'active_address' in st.session_state:
                 "Avg_Monthly": 37.24,
                 "Has_Price_Rise": True,
                 "Switch_Credit": 300.00,
-                "Perks": "£150 Reward Card + Up to £300 Early Exit Buyout Credit"
+                "Reward_Voucher": "£150 Reward Card",
+                "Setup_Cost": 30.00
             },
             {
-                "Provider": "YouFibre Ultrafast 1000",
+                "Provider": "YouFibre YOU 1000",
+                "Logo_Class": "logo-youfibre",
+                "Logo_Text": "YF",
                 "Best_Source": "Via Direct Deal",
                 "Speed_Mbps": 1000,
-                "Speed_Display": "1,000 Mbps",
+                "Speed_Display": "1000 Mbps",
                 "Network": "YouFibre Altnet",
                 "Cost_Current": 25.00,
                 "Cost_April_2027": 25.00,
@@ -459,13 +476,16 @@ if 'active_address' in st.session_state:
                 "Avg_Monthly": 25.00,
                 "Has_Price_Rise": False,
                 "Switch_Credit": 100.00,
-                "Perks": "Fixed Price Guarantee (No mid-contract price rises)"
+                "Reward_Voucher": "No Setup Fee",
+                "Setup_Cost": 0.00
             },
             {
                 "Provider": "Virgin Media Gig1",
+                "Logo_Class": "logo-virgin",
+                "Logo_Text": "VM",
                 "Best_Source": "Via Uswitch Exclusive",
                 "Speed_Mbps": 1130,
-                "Speed_Display": "1,130 Mbps",
+                "Speed_Display": "1130 Mbps",
                 "Network": "Virgin Cable / Nexfibre",
                 "Cost_Current": 39.00,
                 "Cost_April_2027": 42.50,
@@ -473,82 +493,76 @@ if 'active_address' in st.session_state:
                 "Avg_Monthly": 41.90,
                 "Has_Price_Rise": True,
                 "Switch_Credit": 100.00,
-                "Perks": "£100 Bill Credit towards contract buyout"
+                "Reward_Voucher": "£100 Bill Credit",
+                "Setup_Cost": 0.00
             }
         ]
 
         st.markdown("---")
-        st.markdown("### 🏷️ Best Market Deals & Exact Monthly Price Schedule")
+        st.markdown("### 🏷️ Best Market Deals & Price Schedules")
         
         st.markdown("""
         <div class="disclaimer-box">
-            ℹ️ <strong>Ofcom Price Transparency Disclosure:</strong> Standard monthly prices and scheduled fixed-amount step increases (in £/p) are shown for each package across your 24-month contract term.
+            ℹ️ <strong>Ofcom Price Transparency Disclosure:</strong> Standard monthly prices and scheduled fixed step increases are shown across your 24-month contract term.
         </div>
         """, unsafe_allow_html=True)
 
         for d in deals:
             monthly_diff = current_bill - d['Cost_Current']
-            annual_net_saving = monthly_diff * 12
             speed_diff = d['Speed_Mbps'] - current_speed
-            speed_text = f"🚀 +{speed_diff} Mbps Faster" if speed_diff > 0 else f"📉 {abs(speed_diff)} Mbps Slower"
+            speed_text = f"+{speed_diff} Mbps Faster" if speed_diff > 0 else f"{abs(speed_diff)} Mbps Slower"
             net_switch_cost = max(0.0, est_exit_fee - d['Switch_Credit'])
             
             buyout_html = ""
             if contract_status == "In Contract" and est_exit_fee > 0:
                 if d['Switch_Credit'] >= est_exit_fee:
-                    buyout_html = f"<div style='font-size: 0.85rem; color: #16a34a; font-weight: 600; margin-top: 6px;'>✅ Switch Credit (£{d['Switch_Credit']:.0f}) covers your £{est_exit_fee:.2f} exit fee!</div>"
+                    buyout_html = f"<span class='badge badge-credit'>✅ Switch Credit (£{d['Switch_Credit']:.0f}) covers your £{est_exit_fee:.2f} exit fee</span>"
                 else:
-                    buyout_html = f"<div style='font-size: 0.85rem; color: #d97706; font-weight: 600; margin-top: 6px;'>⚡ Credit covers £{d['Switch_Credit']:.0f} of exit fee (Net cost to leave: £{net_switch_cost:.2f})</div>"
+                    buyout_html = f"<span class='badge badge-credit'>⚡ Credit covers £{d['Switch_Credit']:.0f} of exit fee (Net: £{net_switch_cost:.2f})</span>"
 
-            financial_text = f"Save £{monthly_diff:.2f}/mo initially" if monthly_diff > 0 else f"+£{abs(monthly_diff):.2f}/mo upgrade"
-            financial_color = "#16a34a" if monthly_diff > 0 else "#d97706"
+            financial_text = f"Save £{monthly_diff:.2f}/mo" if monthly_diff > 0 else f"+£{abs(monthly_diff):.2f}/mo upgrade"
+            financial_color = "#16a34a" if monthly_diff > 0 else "#c2410c"
 
             if d['Has_Price_Rise']:
-                badge_rise = "<span class='badge' style='background-color: #fff7ed; color: #c2410c; border: 1px solid #ffedd5;'>⚠️ Scheduled Annual Price Steps</span>"
+                badge_rise = "<span class='badge' style='background-color: #fff7ed; color: #c2410c; border: 1px solid #ffedd5;'>⚠️ Price rises each March in contract by £4.00</span>"
             else:
-                badge_rise = "<span class='badge badge-fixed'>🔒 Fixed Price During Contract</span>"
+                badge_rise = "<span class='badge badge-fixed'>🔒 No price rise during contract</span>"
 
-            # Render HTML without internal multiline indentations/comments to prevent parser breaks
-            card_html = f"""<div class="deal-card">
-<div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            # Render Uswitch-styled compact card
+            card_html = f"""<div class="deal-card-container">
+<div class="deal-card">
+<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+<div style="display: flex; align-items: center;">
+<div class="brand-logo-box {d['Logo_Class']}">{d['Logo_Text']}</div>
 <div>
 <div class="deal-title">{d['Provider']} <span style="font-size: 0.85rem; color: #2563eb; font-weight: 600;">({d['Best_Source']})</span></div>
-<div style="margin-top: 6px;">
-<span class="badge badge-speed">{d['Speed_Display']} ({speed_text})</span>
-<span class="badge">🌐 {d['Network']}</span>
-{badge_rise}
+<div style="font-size: 0.85rem; color: #64748b;">average UK speed*</div>
 </div>
 </div>
 <div style="text-align: right;">
-<div class="deal-price">£{d['Cost_Current']:.2f} <span style="font-size: 0.85rem; font-weight: normal; color: #64748b;">/mo</span></div>
-<div style="font-size: 0.85rem; font-weight: 700; color: {financial_color};">{financial_text}</div>
+<div class="deal-price">£{d['Cost_Current']:.2f} <span style="font-size: 0.85rem; font-weight: 600; color: #475569;">a month</span></div>
+<div style="font-size: 0.8rem; color: #64748b; margin-top: 2px;">until March 2027</div>
 </div>
 </div>
-<div class="price-steps-box">
-<div style="display: flex; justify-content: space-between; align-items: center; text-align: center;">
-<div style="flex: 1;">
-<div class="step-label">Today – March 2027</div>
-<div class="step-val">£{d['Cost_Current']:.2f} /mo</div>
+
+<div style="display: flex; justify-content: space-between; align-items: center; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; margin: 10px 0;">
+<div>
+<span class="badge badge-speed">{d['Speed_Display']} ({speed_text})</span>
+{badge_rise}
 </div>
-<div style="color: #cbd5e1; font-size: 1.2rem;">➔</div>
-<div style="flex: 1;">
-<div class="step-label">April 2027 Increase</div>
-<div class="step-val">£{d['Cost_April_2027']:.2f} /mo</div>
-</div>
-<div style="color: #cbd5e1; font-size: 1.2rem;">➔</div>
-<div style="flex: 1;">
-<div class="step-label">April 2028 Increase</div>
-<div class="step-val">£{d['Cost_April_2028']:.2f} /mo</div>
-</div>
-<div style="border-left: 1px solid #cbd5e1; padding-left: 12px; flex: 1.2; text-align: right;">
-<div class="step-label">True 24-Mo Average</div>
-<div class="step-val" style="color: #2563eb;">£{d['Avg_Monthly']:.2f} /mo</div>
+<div style="text-align: right;">
+<div style="font-size: 0.85rem; font-weight: 700; color: #2563eb;">£{d['Avg_Monthly']:.2f} average monthly ℹ️</div>
+<div style="font-size: 0.75rem; color: #64748b;">£{d['Setup_Cost']:.2f} setup cost • 24 month contract</div>
 </div>
 </div>
-</div>
-<div style="display: flex; justify-content: space-between; align-items: center;">
-<div style="font-size: 0.85rem; color: #64748b;">🎁 <strong>Incentives:</strong> {d['Perks']}</div>
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+<div>
+<span class="badge badge-perk">🎁 {d['Reward_Voucher']}</span>
 {buyout_html}
+</div>
+<div style="font-size: 0.85rem; font-weight: 800; color: {financial_color};">{financial_text}</div>
+</div>
 </div>
 </div>"""
 
