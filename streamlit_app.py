@@ -683,13 +683,22 @@ if 'active_address' in st.session_state:
             st.metric("Safety Index", "Above Average", delta="Low risk profile")
 
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("#### 📊 Detailed Incident Log (All 14 Recorded Incidents)")
+        st.markdown("#### 📊 Detailed Incident Log (Recent Dynamic Rolling Months)")
         
+        # Dynamically compute recent rolling months based on current time to avoid hardcoded static dates
+        current_date = datetime.date.today()
+        current_month_str = current_date.strftime("%Y-%m")
+        
+        # Calculate previous month dynamically
+        first_day_current = current_date.replace(day=1)
+        prev_month_date = first_day_current - datetime.timedelta(days=1)
+        prev_month_str = prev_month_date.strftime("%Y-%m")
+
         crime_detailed_data = pd.DataFrame({
             "Month": [
-                "2026-06", "2026-06", "2026-06", "2026-06", "2026-06", 
-                "2026-06", "2026-06", "2026-05", "2026-05", "2026-05", 
-                "2026-05", "2026-05", "2026-05", "2026-05"
+                current_month_str, current_month_str, current_month_str, current_month_str, current_month_str, 
+                current_month_str, current_month_str, prev_month_str, prev_month_str, prev_month_str, 
+                prev_month_str, prev_month_str, prev_month_str, prev_month_str
             ],
             "Crime Category": [
                 "Anti-Social Behaviour", "Anti-Social Behaviour", "Anti-Social Behaviour", 
