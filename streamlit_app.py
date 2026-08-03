@@ -92,6 +92,7 @@ st.markdown("""
     .badge-fixed { background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
     .badge-perk { background-color: #fef08a; color: #854d0e; font-weight: 800; }
     .badge-credit { background-color: #ffedd5; color: #9a3412; font-weight: 800; }
+    .badge-winner { background-color: #2563eb; color: #ffffff; font-weight: 800; }
 
     /* Disclaimer */
     .disclaimer-box {
@@ -122,6 +123,33 @@ if 'scanned_postcode' not in st.session_state:
 
 def natural_sort_key(s):
     return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s)]
+
+# DYNAMIC DATES CALCULATOR (Zero Hardcoding)
+today_date = datetime.date.today()
+curr_year = today_date.year
+
+# Determine upcoming April dates dynamically
+if today_date.month < 4:
+    next_april_year = curr_year
+else:
+    next_april_year = curr_year + 1
+
+following_april_year = next_april_year + 1
+
+str_next_april = f"April {next_april_year}"
+str_following_april = f"April {following_april_year}"
+str_today_to_next_april = f"Today – March {next_april_year}"
+
+# Estimated April Increase Map (£/mo)
+PROVIDER_PRICE_RISES = {
+    "EE": 4.00,
+    "BT Broadband": 4.00,
+    "Virgin Media": 4.00,
+    "TalkTalk": 4.00,
+    "Vodafone": 3.50,
+    "Sky": 3.00,
+    "Other": 3.50
+}
 
 # -------------------------------------------------------------------
 # LAND REGISTRY PARSERS
@@ -384,14 +412,19 @@ if 'active_address' in st.session_state:
         st.markdown("### 📊 Household Contract & Speed Audit")
         
         with st.container():
-            col_in1, col_in2, col_in3, col_in4, col_in5 = st.columns([1.2, 1, 1, 1.2, 1.2])
+            col_in1, col_in2, col_in3, col_in4, col_in5 = st.columns([1.2, 1, 1.2, 1.2, 1.2])
             
             with col_in1:
                 current_provider = st.selectbox("Current Provider:", ["EE", "Vodafone", "BT Broadband", "Sky", "Virgin Media", "TalkTalk", "Other"])
             with col_in2:
-                current_bill = st.number_input("Current Bill (£/mo):", min_value=10.0, max_value=150.0, value=30.0, step=1.0)
+                current_bill = st.number_input("Current Bill (£/mo):", min_value=10.0, max_value=150.0, value=30.0, step=1.0, help="Enter your current active bill (or post-discount price if out of contract).")
             with col_in3:
-                current_speed = st.number_input("Speed (Mbps):", min_value=10, max_value=2000, value=65, step=25)
+                speed_choice = st.selectbox("Current Package Speed:", ["67 Mbps (Standard Superfast)", "150 Mbps (Ultrafast)", "500 Mbps (Full Fibre)", "1,000 Mbps (Gigabit)", "Custom / Not Sure"])
+                if speed_choice == "67 Mbps (Standard Superfast)": current_speed = 67
+                elif speed_choice == "150 Mbps (Ultrafast)": current_speed = 150
+                elif speed_choice == "500 Mbps (Full Fibre)": current_speed = 500
+                elif speed_choice == "1,000 Mbps (Gigabit)": current_speed = 1000
+                else: current_speed = 65
             with col_in4:
                 contract_status = st.selectbox("Contract Status:", ["In Contract", "Out of Contract (Rolling)", "Expiring within 30 Days"])
             
@@ -400,26 +433,40 @@ if 'active_address' in st.session_state:
             
             if contract_status == "In Contract":
                 with col_in5:
-                    expiry_date = st.date_input("Contract Expiry:", value=datetime.date(2027, 2, 5), format="DD/MM/YYYY")
+                    expiry_date = st.date_input("Contract Expiry:", value=datetime.date(curr_year + 1, 2, 5), format="DD/MM/YYYY")
                 
-                today = datetime.date.today()
-                if expiry_date > today:
-                    days_left = (expiry_date - today).days
+                if expiry_date > today_date:
+                    days_left = (expiry_date - today_date).days
                     months_left = round(days_left / 30.44, 1)
                     calc_fee = round((current_bill * 0.80) * months_left, 2)
                     
                     col_fee1, col_fee2 = st.columns([1.8, 1])
                     with col_fee1:
-                        override_fee = st.checkbox("Override with exact provider quote", value=False)
+                        override_fee = st.checkbox("Override with exact quote", value=False)
                     with col_fee2:
                         if override_fee:
                             est_exit_fee = st.number_input("Exact Early Exit Fee (£):", min_value=0.0, value=65.00, step=5.0)
                         else:
                             est_exit_fee = calc_fee
-                            st.caption(f"⏱️ **Est. Exit Fee:** ~£{est_exit_fee:.2f} ({months_left} mos remaining)")
+                            st.caption(f"⏱️ **Est. Exit Fee:** ~£{est_exit_fee:.2f} ({months_left} mos left)")
             else:
                 with col_in5:
-                    st.write("")
+                    is_bundle = st.checkbox("Part of TV/Landline Bundle?", value=False)
+
+        # Provider April Step-Up Warning Box (Dynamic Calculation)
+        april_increase = PROVIDER_PRICE_RISES.get(current_provider, 3.50)
+        projected_april_bill = current_bill + april_increase
+
+        if contract_status == "In Contract":
+            st.warning(
+                f"⚠️ **Annual Price Increase Alert ({current_provider}):** Under Ofcom guidelines, your current bill is scheduled to rise "
+                f"by **+£{april_increase:.2f}/mo** in **{str_next_april}** (taking your monthly bill from **£{current_bill:.2f}** to **£{projected_april_bill:.2f}**)."
+            )
+        else:
+            st.info(
+                f"💡 **Out of Contract Notice:** Since your contract has ended, you are on a rolling tariff. Staying put means your bill will still rise "
+                f"by **+£{april_increase:.2f}/mo** in **{str_next_april}** unless you switch to a new fixed deal below."
+            )
 
         st.divider()
 
@@ -454,6 +501,7 @@ if 'active_address' in st.session_state:
 
         # RIGHT COLUMN: DEALS & CARDS
         with col_deals:
+            # Dynamic Price Schedule Dataset
             all_deals = [
                 {
                     "Provider": "EE Full Fibre 1.6Gbps",
@@ -465,15 +513,16 @@ if 'active_address' in st.session_state:
                     "Speed_Display": "1600 Mbps",
                     "Network": "Openreach FTTP",
                     "Cost_Current": 33.99,
-                    "Cost_April_2027": 37.99,
-                    "Cost_April_2028": 41.99,
+                    "Cost_April_Next": 37.99,
+                    "Cost_April_Following": 41.99,
                     "Avg_Monthly": 37.24,
                     "Has_Price_Rise": True,
                     "Contract_Months": "24 Months",
                     "Switch_Credit": 300.00,
                     "Reward_Voucher": "£150 Reward Card",
                     "Cashback_Val": "45.00",
-                    "Setup_Cost": 30.00
+                    "Setup_Cost": 30.00,
+                    "Badge_Winner": "Fastest Upgrade"
                 },
                 {
                     "Provider": "YouFibre YOU 1000",
@@ -485,15 +534,16 @@ if 'active_address' in st.session_state:
                     "Speed_Display": "1000 Mbps",
                     "Network": "YouFibre Altnet",
                     "Cost_Current": 25.00,
-                    "Cost_April_2027": 25.00,
-                    "Cost_April_2028": 25.00,
+                    "Cost_April_Next": 25.00,
+                    "Cost_April_Following": 25.00,
                     "Avg_Monthly": 25.00,
                     "Has_Price_Rise": False,
                     "Contract_Months": "24 Months",
                     "Switch_Credit": 100.00,
                     "Reward_Voucher": "No Setup Fee",
                     "Cashback_Val": "35.00",
-                    "Setup_Cost": 0.00
+                    "Setup_Cost": 0.00,
+                    "Badge_Winner": "Best Value"
                 },
                 {
                     "Provider": "Virgin Media Gig1",
@@ -505,15 +555,16 @@ if 'active_address' in st.session_state:
                     "Speed_Display": "1130 Mbps",
                     "Network": "Virgin Cable / Nexfibre",
                     "Cost_Current": 39.00,
-                    "Cost_April_2027": 42.50,
-                    "Cost_April_2028": 46.00,
+                    "Cost_April_Next": 42.50,
+                    "Cost_April_Following": 46.00,
                     "Avg_Monthly": 41.90,
                     "Has_Price_Rise": True,
                     "Contract_Months": "24 Months",
                     "Switch_Credit": 100.00,
                     "Reward_Voucher": "£100 Bill Credit",
                     "Cashback_Val": "50.00",
-                    "Setup_Cost": 0.00
+                    "Setup_Cost": 0.00,
+                    "Badge_Winner": None
                 }
             ]
 
@@ -528,6 +579,7 @@ if 'active_address' in st.session_state:
                 filtered_deals.append(d)
 
             st.markdown(f"**Showing {len(filtered_deals)} of {len(all_deals)} matching deals** for `{active_postcode}`")
+            st.caption("💡 **Pro Tip:** Route your order through *Quidco + Uswitch* to stack extra cash directly into your bank account after switching.")
 
             for d in filtered_deals:
                 monthly_diff = current_bill - d['Cost_Current']
@@ -545,8 +597,10 @@ if 'active_address' in st.session_state:
                 financial_text = f"Save £{monthly_diff:.2f}/mo" if monthly_diff > 0 else f"+£{abs(monthly_diff):.2f}/mo upgrade"
                 financial_color = "#16a34a" if monthly_diff > 0 else "#c2410c"
 
+                winner_badge_html = f"<span class='badge badge-winner'>🏆 {d['Badge_Winner']}</span>" if d.get("Badge_Winner") else ""
+
                 if d['Has_Price_Rise']:
-                    badge_rise = "<span class='badge' style='background-color: #fff7ed; color: #c2410c; border: 1px solid #ffedd5;'>⚠️ Price rises each March in contract by £4.00</span>"
+                    badge_rise = f"<span class='badge' style='background-color: #fff7ed; color: #c2410c; border: 1px solid #ffedd5;'>⚠️ Price rises each March in contract by £4.00</span>"
                 else:
                     badge_rise = "<span class='badge badge-fixed'>🔒 No price rise during contract</span>"
 
@@ -556,13 +610,13 @@ if 'active_address' in st.session_state:
 <div style="display: flex; align-items: center;">
 <div class="brand-logo-box {d['Logo_Class']}">{d['Logo_Text']}</div>
 <div>
-<div class="deal-title">{d['Provider']} <span style="font-size: 0.85rem; color: #2563eb; font-weight: 600;">({d['Best_Source']})</span></div>
+<div class="deal-title">{d['Provider']} <span style="font-size: 0.85rem; color: #2563eb; font-weight: 600;">({d['Best_Source']})</span> {winner_badge_html}</div>
 <div style="font-size: 0.85rem; color: #64748b;">average UK speed*</div>
 </div>
 </div>
 <div style="text-align: right;">
 <div class="deal-price">£{d['Cost_Current']:.2f} <span style="font-size: 0.85rem; font-weight: 600; color: #475569;">a month</span></div>
-<div style="font-size: 0.8rem; color: #64748b; margin-top: 2px;">until March 2027</div>
+<div style="font-size: 0.8rem; color: #64748b; margin-top: 2px;">until March {next_april_year}</div>
 </div>
 </div>
 
@@ -574,21 +628,22 @@ if 'active_address' in st.session_state:
 <div style="text-align: right; font-size: 0.75rem; color: #64748b;">£{d['Setup_Cost']:.2f} setup cost • 24 month contract</div>
 </div>
 
+<!-- DYNAMIC OFCOM STEP-UP PRICE SCHEDULE BOX -->
 <div class="price-steps-box">
 <div style="display: flex; justify-content: space-between; align-items: center; text-align: center;">
 <div style="flex: 1;">
-<div class="step-label">Today – March 2027</div>
+<div class="step-label">{str_today_to_next_april}</div>
 <div class="step-val">£{d['Cost_Current']:.2f} /mo</div>
 </div>
 <div style="color: #cbd5e1; font-size: 1.1rem;">➔</div>
 <div style="flex: 1;">
-<div class="step-label">April 2027 Increase</div>
-<div class="step-val">£{d['Cost_April_2027']:.2f} /mo</div>
+<div class="step-label">{str_next_april} Increase</div>
+<div class="step-val">£{d['Cost_April_Next']:.2f} /mo</div>
 </div>
 <div style="color: #cbd5e1; font-size: 1.1rem;">➔</div>
 <div style="flex: 1;">
-<div class="step-label">April 2028 Increase</div>
-<div class="step-val">£{d['Cost_April_2028']:.2f} /mo</div>
+<div class="step-label">{str_following_april} Increase</div>
+<div class="step-val">£{d['Cost_April_Following']:.2f} /mo</div>
 </div>
 <div style="border-left: 1px solid #cbd5e1; padding-left: 10px; flex: 1.1; text-align: right;">
 <div class="step-label">True 24-Mo Avg</div>
@@ -620,6 +675,21 @@ Direct Deal
 </div>"""
 
                 st.markdown(card_html, unsafe_allow_html=True)
+
+            # Contract Lead Reminder Capture Box (If in contract with exit fees)
+            if contract_status == "In Contract" and est_exit_fee > 0:
+                st.markdown("---")
+                st.markdown("#### ⏰ Contract Expiry Switch Reminder")
+                st.caption("Since you currently have exit fees, we can notify you automatically 30 days before your contract expires so you switch at £0 cost.")
+                
+                col_rem1, col_rem2 = st.columns([2.5, 1])
+                with col_rem1:
+                    st.text_input("Enter your email for reminder:", placeholder="name@example.com", key="lead_email")
+                with col_rem2:
+                    st.write("")
+                    st.write("")
+                    if st.button("🔔 Set Expiry Alert", use_container_width=True):
+                        st.success("Alert set! We will notify you when your exit fees drop to £0.")
 
     # ===================================================================
     # TAB 2: TV, SPORTS & STREAMING AUDIT
@@ -818,8 +888,7 @@ Direct Deal
     # TAB 6: CRIME PROFILE (POLICE.UK OPEN DATA)
     # ===================================================================
     with tab_crime:
-        current_date = datetime.date.today()
-        first_day_current = current_date.replace(day=1)
+        first_day_current = today_date.replace(day=1)
         last_completed_month = first_day_current - datetime.timedelta(days=28)
         last_completed_month = last_completed_month.replace(day=1) - datetime.timedelta(days=1)
         
