@@ -128,7 +128,6 @@ def natural_sort_key(s):
 today_date = datetime.date.today()
 curr_year = today_date.year
 
-# Determine upcoming April dates dynamically
 if today_date.month < 4:
     next_april_year = curr_year
 else:
@@ -434,24 +433,25 @@ if 'active_address' in st.session_state:
             if contract_status == "In Contract":
                 with col_in5:
                     expiry_date = st.date_input("Contract Expiry:", value=datetime.date(curr_year + 1, 2, 5), format="DD/MM/YYYY")
-                
-                if expiry_date > today_date:
-                    days_left = (expiry_date - today_date).days
-                    months_left = round(days_left / 30.44, 1)
-                    calc_fee = round((current_bill * 0.80) * months_left, 2)
-                    
-                    col_fee1, col_fee2 = st.columns([1.8, 1])
-                    with col_fee1:
-                        override_fee = st.checkbox("Override with exact quote", value=False)
-                    with col_fee2:
-                        if override_fee:
-                            est_exit_fee = st.number_input("Exact Early Exit Fee (£):", min_value=0.0, value=65.00, step=5.0)
-                        else:
-                            est_exit_fee = calc_fee
-                            st.caption(f"⏱️ **Est. Exit Fee:** ~£{est_exit_fee:.2f} ({months_left} mos left)")
             else:
                 with col_in5:
                     is_bundle = st.checkbox("Part of TV/Landline Bundle?", value=False)
+
+            # Tightly aligned exit fee override row sitting directly below contract parameters
+            if contract_status == "In Contract" and expiry_date > today_date:
+                days_left = (expiry_date - today_date).days
+                months_left = round(days_left / 30.44, 1)
+                calc_fee = round((current_bill * 0.80) * months_left, 2)
+
+                col_fee1, col_fee2 = st.columns([0.45, 0.55])
+                with col_fee1:
+                    override_fee = st.checkbox("Override with exact quote", value=False)
+                with col_fee2:
+                    if override_fee:
+                        est_exit_fee = st.number_input("Exact Early Exit Fee (£):", min_value=0.0, value=65.00, step=5.0, label_visibility="collapsed")
+                    else:
+                        est_exit_fee = calc_fee
+                        st.markdown(f"⏱️ **Est. Exit Fee:** ~£{est_exit_fee:.2f} ({months_left} mos left)")
 
         # Provider April Step-Up Warning Box (Dynamic Calculation)
         april_increase = PROVIDER_PRICE_RISES.get(current_provider, 3.50)
@@ -501,7 +501,6 @@ if 'active_address' in st.session_state:
 
         # RIGHT COLUMN: DEALS & CARDS
         with col_deals:
-            # Dynamic Price Schedule Dataset
             all_deals = [
                 {
                     "Provider": "EE Full Fibre 1.6Gbps",
@@ -628,7 +627,6 @@ if 'active_address' in st.session_state:
 <div style="text-align: right; font-size: 0.75rem; color: #64748b;">£{d['Setup_Cost']:.2f} setup cost • 24 month contract</div>
 </div>
 
-<!-- DYNAMIC OFCOM STEP-UP PRICE SCHEDULE BOX -->
 <div class="price-steps-box">
 <div style="display: flex; justify-content: space-between; align-items: center; text-align: center;">
 <div style="flex: 1;">
@@ -676,7 +674,6 @@ Direct Deal
 
                 st.markdown(card_html, unsafe_allow_html=True)
 
-            # Contract Lead Reminder Capture Box (If in contract with exit fees)
             if contract_status == "In Contract" and est_exit_fee > 0:
                 st.markdown("---")
                 st.markdown("#### ⏰ Contract Expiry Switch Reminder")
