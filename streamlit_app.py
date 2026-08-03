@@ -17,25 +17,6 @@ st.markdown("""
 <style>
     .stApp { background-color: #f8f9fa; }
     
-    /* Audit Banner Card - Dark Sleek Aesthetic */
-    .audit-banner {
-        background-color: #0f172a;
-        color: #ffffff;
-        padding: 20px 24px;
-        border-radius: 12px;
-        margin-bottom: 24px;
-        box-shadow: 0 4px 14px rgba(0,0,0,0.08);
-    }
-    .audit-banner-title {
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: #f8fafc;
-        margin-bottom: 12px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    
     /* Deal Cards UI */
     .deal-card-container {
         width: 100%;
@@ -66,6 +47,17 @@ st.markdown("""
     .logo-youfibre { background-color: #000000; }
     .logo-virgin { background-color: #e2001a; }
     .logo-vodafone { background-color: #e60000; }
+
+    /* Ofcom Step-Up Schedule Box */
+    .price-steps-box {
+        background-color: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 10px 14px;
+        margin: 10px 0;
+    }
+    .step-label { font-size: 0.72rem; color: #64748b; text-transform: uppercase; font-weight: 700; }
+    .step-val { font-size: 0.95rem; font-weight: 800; color: #0f172a; }
 
     .sales-card {
         background-color: #ffffff;
@@ -389,7 +381,6 @@ if 'active_address' in st.session_state:
     # TAB 1: BROADBAND
     # ===================================================================
     with tab_broadband:
-        # Dark Sleek Household Audit Header Card
         st.markdown("### 📊 Household Contract & Speed Audit")
         
         with st.container():
@@ -460,7 +451,6 @@ if 'active_address' in st.session_state:
 
         # RIGHT COLUMN: DEALS & CARDS
         with col_deals:
-            # Master Deals Dataset
             all_deals = [
                 {
                     "Provider": "EE Full Fibre 1.6Gbps",
@@ -471,6 +461,8 @@ if 'active_address' in st.session_state:
                     "Speed_Display": "1600 Mbps",
                     "Network": "Openreach FTTP",
                     "Cost_Current": 33.99,
+                    "Cost_April_2027": 37.99,
+                    "Cost_April_2028": 41.99,
                     "Avg_Monthly": 37.24,
                     "Has_Price_Rise": True,
                     "Contract_Months": "24 Months",
@@ -487,6 +479,8 @@ if 'active_address' in st.session_state:
                     "Speed_Display": "1000 Mbps",
                     "Network": "YouFibre Altnet",
                     "Cost_Current": 25.00,
+                    "Cost_April_2027": 25.00,
+                    "Cost_April_2028": 25.00,
                     "Avg_Monthly": 25.00,
                     "Has_Price_Rise": False,
                     "Contract_Months": "24 Months",
@@ -503,6 +497,8 @@ if 'active_address' in st.session_state:
                     "Speed_Display": "1130 Mbps",
                     "Network": "Virgin Cable / Nexfibre",
                     "Cost_Current": 39.00,
+                    "Cost_April_2027": 42.50,
+                    "Cost_April_2028": 46.00,
                     "Avg_Monthly": 41.90,
                     "Has_Price_Rise": True,
                     "Contract_Months": "24 Months",
@@ -512,18 +508,12 @@ if 'active_address' in st.session_state:
                 }
             ]
 
-            # Filter Logic Application
             filtered_deals = []
             for d in all_deals:
-                # Speed Filter
                 if min_speed_filter == "100+ Mbps" and d['Speed_Mbps'] < 100: continue
                 if min_speed_filter == "300+ Mbps" and d['Speed_Mbps'] < 300: continue
                 if min_speed_filter == "900+ Mbps" and d['Speed_Mbps'] < 900: continue
-                
-                # No Price Rise Filter
                 if opt_no_price_rise and d['Has_Price_Rise']: continue
-                
-                # Max Price Filter
                 if d['Cost_Current'] > max_price_slider: continue
 
                 filtered_deals.append(d)
@@ -551,6 +541,7 @@ if 'active_address' in st.session_state:
                 else:
                     badge_rise = "<span class='badge badge-fixed'>🔒 No price rise during contract</span>"
 
+                # Integrated Ofcom Step-Up Schedule Box inside Uswitch Card
                 card_html = f"""<div class="deal-card-container">
 <div class="deal-card">
 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
@@ -567,18 +558,39 @@ if 'active_address' in st.session_state:
 </div>
 </div>
 
-<div style="display: flex; justify-content: space-between; align-items: center; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; margin: 10px 0;">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
 <div>
 <span class="badge badge-speed">{d['Speed_Display']} ({speed_text})</span>
 {badge_rise}
 </div>
-<div style="text-align: right;">
-<div style="font-size: 0.85rem; font-weight: 700; color: #2563eb;">£{d['Avg_Monthly']:.2f} average monthly ℹ️</div>
-<div style="font-size: 0.75rem; color: #64748b;">£{d['Setup_Cost']:.2f} setup cost • 24 month contract</div>
+<div style="text-align: right; font-size: 0.75rem; color: #64748b;">£{d['Setup_Cost']:.2f} setup cost • 24 month contract</div>
+</div>
+
+<!-- Restored Ofcom Step-Up Price Timeline Schedule Box -->
+<div class="price-steps-box">
+<div style="display: flex; justify-content: space-between; align-items: center; text-align: center;">
+<div style="flex: 1;">
+<div class="step-label">Today – March 2027</div>
+<div class="step-val">£{d['Cost_Current']:.2f} /mo</div>
+</div>
+<div style="color: #cbd5e1; font-size: 1.1rem;">➔</div>
+<div style="flex: 1;">
+<div class="step-label">April 2027 Increase</div>
+<div class="step-val">£{d['Cost_April_2027']:.2f} /mo</div>
+</div>
+<div style="color: #cbd5e1; font-size: 1.1rem;">➔</div>
+<div style="flex: 1;">
+<div class="step-label">April 2028 Increase</div>
+<div class="step-val">£{d['Cost_April_2028']:.2f} /mo</div>
+</div>
+<div style="border-left: 1px solid #cbd5e1; padding-left: 10px; flex: 1.1; text-align: right;">
+<div class="step-label">True 24-Mo Avg</div>
+<div class="step-val" style="color: #2563eb;">£{d['Avg_Monthly']:.2f} /mo</div>
+</div>
 </div>
 </div>
 
-<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
 <div>
 <span class="badge badge-perk">🎁 {d['Reward_Voucher']}</span>
 {buyout_html}
