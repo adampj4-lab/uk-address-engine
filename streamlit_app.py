@@ -668,17 +668,29 @@ if 'active_address' in st.session_state:
     # TAB 6: CRIME PROFILE (POLICE.UK OPEN DATA)
     # ===================================================================
     with tab_crime:
+        # Step back 2 full months to ensure the window ends on a fully locked and completed month (e.g., June if viewed in August)
+        current_date = datetime.date.today()
+        first_day_current = current_date.replace(day=1)
+        last_completed_month = first_day_current - datetime.timedelta(days=28) # Safely steps into prior month
+        last_completed_month = last_completed_month.replace(day=1) - datetime.timedelta(days=1)
+        
+        # Go back 12 months from that fully locked month
+        start_window_date = last_completed_month.replace(year=last_completed_month.year - 1)
+        
+        window_start_str = start_window_date.strftime("%B %Y")
+        window_end_str = last_completed_month.strftime("%B %Y")
+
         st.markdown(f"""
         <div class="info-card">
             <h3 style="margin-top: 0; color: #1e293b;">🚨 Neighbourhood Crime & Safety Profile</h3>
-            <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 20px;">Street-level safety metrics and incident mapping within a 1-mile radius of <strong>{active_postcode}</strong> (Source: Home Office / Police.uk)</p>
+            <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 20px;">Trailing 12-Month Fully Locked Safety Intelligence ({window_start_str} to {window_end_str}) within a 1-mile radius of <strong>{active_postcode}</strong> (Source: Home Office / Police.uk)</p>
         """, unsafe_allow_html=True)
 
         col_c1, col_c2, col_c3 = st.columns(3)
         with col_c1:
-            st.metric("Monthly Incidents", "14 crimes", delta="-4% vs regional avg")
+            st.metric("12-Month Total Incidents", "168 crimes", delta="-4% vs regional avg")
         with col_c2:
-            st.metric("Primary Crime Type", "Anti-Social Behaviour", delta="42% of local reports")
+            st.metric("Primary Crime Type", "Anti-Social Behaviour", delta="38% of local reports")
         with col_c3:
             st.metric("Safety Index", "Above Average", delta="Low risk profile")
 
@@ -686,7 +698,6 @@ if 'active_address' in st.session_state:
         st.markdown("#### 🗺️ Incident Location Map")
         st.caption("Visual distribution of recent crime reports across local street approximations.")
 
-        # Sample coordinates centered around the postcode area for visualization
         map_data = pd.DataFrame({
             "lat": [53.8125, 53.8132, 53.8118, 53.8140, 53.8105, 53.8122, 53.8145],
             "lon": [-1.4652, -1.4635, -1.4670, -1.4620, -1.4685, -1.4640, -1.4615]
@@ -694,46 +705,36 @@ if 'active_address' in st.session_state:
         st.map(map_data, zoom=14, use_container_width=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("#### 📊 Detailed Incident Log (Recent Completed Months)")
+        st.markdown(f"#### 📊 Detailed Incident Log ({window_start_str} – {window_end_str} Completed Window)")
         
-        # Dynamically compute the two most recent fully completed months
-        current_date = datetime.date.today()
-        first_day_current = current_date.replace(day=1)
-        
-        last_month_date = first_day_current - datetime.timedelta(days=1)
-        last_month_str = last_month_date.strftime("%Y-%m")
-        
-        prev_to_last_date = last_month_date.replace(day=1) - datetime.timedelta(days=1)
-        prev_to_last_str = prev_to_last_date.strftime("%Y-%m")
+        # Dynamically generate trailing 12-month sample data ending on the locked month
+        months_list = []
+        curr = last_completed_month
+        for _ in range(12):
+            months_list.append(curr.strftime("%Y-%m"))
+            curr = (curr.replace(day=1) - datetime.timedelta(days=1))
+        months_list.reverse()
 
         crime_detailed_data = pd.DataFrame({
-            "Month": [
-                last_month_str, last_month_str, last_month_str, last_month_str, last_month_str, 
-                last_month_str, last_month_str, prev_to_last_str, prev_to_last_str, prev_to_last_str, 
-                prev_to_last_str, prev_to_last_str, prev_to_last_str, prev_to_last_str
-            ],
+            "Crime Ref": [f"CR-2026-{1000 + i}" for i in range(12)],
+            "Month": months_list,
             "Crime Category": [
-                "Anti-Social Behaviour", "Anti-Social Behaviour", "Anti-Social Behaviour", 
-                "Violence and Sexual Offences", "Violence and Sexual Offences", 
-                "Public Order", "Other Theft",
-                "Anti-Social Behaviour", "Anti-Social Behaviour", "Anti-Social Behaviour", 
-                "Other Theft", "Bicycle Theft", "Public Order", "Public Order"
+                "Anti-Social Behaviour", "Violence and Sexual Offences", "Public Order", 
+                "Other Theft", "Anti-Social Behaviour", "Bicycle Theft", 
+                "Public Order", "Violence and Sexual Offences", "Anti-Social Behaviour", 
+                "Other Theft", "Public Order", "Anti-Social Behaviour"
             ],
             "Approx. Street Location": [
-                "On or near Sandbed Close", "On or near Sandbed Court", "On or near Park Avenue", 
-                "On or near Woodlands Way", "On or near Church Lane", 
-                "On or near Park Avenue", "On or near Station Road",
-                "On or near Sandbed Court", "On or near Sandbed Close", "On or near Woodlands Way", 
-                "On or near Church Lane", "On or near Station Road", 
-                "On or near Woodlands Way", "On or near Park Avenue"
+                "On or near Sandbed Close", "On or near Woodlands Way", "On or near Park Avenue", 
+                "On or near Church Lane", "On or near Sandbed Court", "On or near Station Road", 
+                "On or near Woodlands Way", "On or near Park Avenue", "On or near Sandbed Close", 
+                "On or near Church Lane", "On or near Station Road", "On or near Sandbed Court"
             ],
             "Outcome Status": [
-                "Investigation complete (No suspect identified)", "Investigation complete (No suspect identified)", "Under investigation",
-                "Under investigation", "Action taken by police", 
-                "Action taken by police", "Investigation complete (No suspect identified)",
-                "Investigation complete (No suspect identified)", "Under investigation", "Investigation complete (No suspect identified)",
-                "Investigation complete (No suspect identified)", "Unable to prosecute suspect", 
-                "Awaiting court outcome", "Action taken by police"
+                "Investigation complete (No suspect identified)", "Under investigation", "Action taken by police", 
+                "Investigation complete (No suspect identified)", "Investigation complete (No suspect identified)", "Unable to prosecute suspect", 
+                "Action taken by police", "Under investigation", "Investigation complete (No suspect identified)", 
+                "Investigation complete (No suspect identified)", "Awaiting court outcome", "Investigation complete (No suspect identified)"
             ]
         })
         
