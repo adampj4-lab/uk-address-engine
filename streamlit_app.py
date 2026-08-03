@@ -17,19 +17,36 @@ st.markdown("""
 <style>
     .stApp { background-color: #f8f9fa; }
     
-    /* Constrain main deal cards width for tight UI */
-    .deal-card-container {
-        max-width: 950px;
-        margin: 0 auto 16px 0;
+    /* Audit Banner Card - Dark Sleek Aesthetic */
+    .audit-banner {
+        background-color: #0f172a;
+        color: #ffffff;
+        padding: 20px 24px;
+        border-radius: 12px;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+    }
+    .audit-banner-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #f8fafc;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
     
+    /* Deal Cards UI */
+    .deal-card-container {
+        width: 100%;
+        margin-bottom: 16px;
+    }
     .deal-card {
         background-color: #ffffff;
         padding: 20px 24px;
         border-radius: 12px;
         border: 1px solid #e2e8f0;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-        margin-bottom: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.03);
     }
     
     .brand-logo-box {
@@ -45,7 +62,6 @@ st.markdown("""
         margin-right: 14px;
         flex-shrink: 0;
     }
-    
     .logo-ee { background-color: #007b85; }
     .logo-youfibre { background-color: #000000; }
     .logo-virgin { background-color: #e2001a; }
@@ -73,29 +89,6 @@ st.markdown("""
     
     .deal-title { font-size: 1.15rem; font-weight: 800; color: #0f172a; }
     .deal-price { font-size: 1.7rem; font-weight: 900; color: #000000; line-height: 1; }
-    
-    /* Price Steps Schedule Box */
-    .price-steps-box {
-        background-color: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 10px 14px;
-        margin-top: 10px;
-        margin-bottom: 10px;
-    }
-    .step-label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 600; }
-    .step-val { font-size: 0.95rem; font-weight: 700; color: #0f172a; }
-
-    /* Prevent metric label truncation/ellipsis */
-    [data-testid="stMetricLabel"] {
-        white-space: normal !important;
-        overflow: visible !important;
-        text-overflow: unset !important;
-        font-size: 0.9rem !important;
-    }
-    [data-testid="stMetricValue"] {
-        font-size: 1.8rem !important;
-    }
 
     /* Uswitch Badges */
     .badge {
@@ -117,12 +110,10 @@ st.markdown("""
         border-radius: 8px;
         font-size: 0.85rem;
         color: #92400e;
-        margin-top: 10px;
         margin-bottom: 16px;
-        max-width: 950px;
     }
 
-    /* Tighten Streamlit layout padding */
+    /* Streamlit layout padding */
     .block-container { padding-top: 1.5rem; padding-bottom: 2rem; }
 </style>
 """, unsafe_allow_html=True)
@@ -395,141 +386,172 @@ if 'active_address' in st.session_state:
     tab_banking = tabs[7]
     
     # ===================================================================
-    # TAB 1: BROADBAND (TIGHT & COMPACT USWITCH UI)
+    # TAB 1: BROADBAND
     # ===================================================================
     with tab_broadband:
-        st.subheader("🌐 Network Infrastructure Availability")
-        col1, col2, col3, col4 = st.columns(4)
-        with col1: st.metric(label="Openreach FTTP", value="Ready", delta="1,000 Mbps")
-        with col2: st.metric(label="Virgin Media / Nexfibre", value="Gig1", delta="1,130 Mbps")
-        with col3: st.metric(label="CityFibre Altnet", value="Active", delta="900 Mbps Sym")
-        with col4: st.metric(label="5G Home Broadband", value="Excellent", delta="EE / Three")
-
-        st.divider()
+        # Dark Sleek Household Audit Header Card
         st.markdown("### 📊 Household Contract & Speed Audit")
         
-        # Single tight inline row for inputs
-        col_in1, col_in2, col_in3, col_in4, col_in5 = st.columns([1.2, 1, 1, 1.2, 1.2])
-        
-        with col_in1:
-            current_provider = st.selectbox("Current Provider:", ["EE", "Vodafone", "BT Broadband", "Sky", "Virgin Media", "TalkTalk", "Other"])
-        with col_in2:
-            current_bill = st.number_input("Current Bill (£/mo):", min_value=10.0, max_value=150.0, value=30.0, step=1.0)
-        with col_in3:
-            current_speed = st.number_input("Speed (Mbps):", min_value=10, max_value=2000, value=65, step=25)
-        with col_in4:
-            contract_status = st.selectbox("Contract Status:", ["In Contract", "Out of Contract (Rolling)", "Expiring within 30 Days"])
-        
-        est_exit_fee = 0.0
-        months_left = 0.0
-        
-        if contract_status == "In Contract":
-            with col_in5:
-                expiry_date = st.date_input("Expiry Date:", value=datetime.date(2027, 2, 5), format="DD/MM/YYYY")
+        with st.container():
+            col_in1, col_in2, col_in3, col_in4, col_in5 = st.columns([1.2, 1, 1, 1.2, 1.2])
             
-            today = datetime.date.today()
-            if expiry_date > today:
-                days_left = (expiry_date - today).days
-                months_left = round(days_left / 30.44, 1)
-                calc_fee = round((current_bill * 0.80) * months_left, 2)
+            with col_in1:
+                current_provider = st.selectbox("Current Provider:", ["EE", "Vodafone", "BT Broadband", "Sky", "Virgin Media", "TalkTalk", "Other"])
+            with col_in2:
+                current_bill = st.number_input("Current Bill (£/mo):", min_value=10.0, max_value=150.0, value=30.0, step=1.0)
+            with col_in3:
+                current_speed = st.number_input("Speed (Mbps):", min_value=10, max_value=2000, value=65, step=25)
+            with col_in4:
+                contract_status = st.selectbox("Contract Status:", ["In Contract", "Out of Contract (Rolling)", "Expiring within 30 Days"])
+            
+            est_exit_fee = 0.0
+            months_left = 0.0
+            
+            if contract_status == "In Contract":
+                with col_in5:
+                    expiry_date = st.date_input("Expiry Date:", value=datetime.date(2027, 2, 5), format="DD/MM/YYYY")
                 
-                override_fee = st.checkbox("Exact quote fee", value=False)
-                if override_fee:
-                    est_exit_fee = st.number_input("Exact Exit Fee (£):", min_value=0.0, value=65.00, step=5.0)
-                else:
-                    est_exit_fee = calc_fee
-                st.caption(f"⏱️ **Exit Fee Estimate:** ~£{est_exit_fee:.2f} ({months_left} mos remaining)")
-        else:
-            with col_in5:
-                st.write("")
-
-        # Deals dataset incorporating step-up pricing schedules across contract lifetime
-        deals = [
-            {
-                "Provider": "EE Full Fibre 1.6Gbps",
-                "Logo_Class": "logo-ee",
-                "Logo_Text": "EE",
-                "Best_Source": "Via Uswitch",
-                "Speed_Mbps": 1600,
-                "Speed_Display": "1600 Mbps",
-                "Network": "Openreach FTTP",
-                "Cost_Current": 33.99,
-                "Cost_April_2027": 37.99,
-                "Cost_April_2028": 41.99,
-                "Avg_Monthly": 37.24,
-                "Has_Price_Rise": True,
-                "Switch_Credit": 300.00,
-                "Reward_Voucher": "£150 Reward Card",
-                "Setup_Cost": 30.00
-            },
-            {
-                "Provider": "YouFibre YOU 1000",
-                "Logo_Class": "logo-youfibre",
-                "Logo_Text": "YF",
-                "Best_Source": "Via Direct Deal",
-                "Speed_Mbps": 1000,
-                "Speed_Display": "1000 Mbps",
-                "Network": "YouFibre Altnet",
-                "Cost_Current": 25.00,
-                "Cost_April_2027": 25.00,
-                "Cost_April_2028": 25.00,
-                "Avg_Monthly": 25.00,
-                "Has_Price_Rise": False,
-                "Switch_Credit": 100.00,
-                "Reward_Voucher": "No Setup Fee",
-                "Setup_Cost": 0.00
-            },
-            {
-                "Provider": "Virgin Media Gig1",
-                "Logo_Class": "logo-virgin",
-                "Logo_Text": "VM",
-                "Best_Source": "Via Uswitch Exclusive",
-                "Speed_Mbps": 1130,
-                "Speed_Display": "1130 Mbps",
-                "Network": "Virgin Cable / Nexfibre",
-                "Cost_Current": 39.00,
-                "Cost_April_2027": 42.50,
-                "Cost_April_2028": 46.00,
-                "Avg_Monthly": 41.90,
-                "Has_Price_Rise": True,
-                "Switch_Credit": 100.00,
-                "Reward_Voucher": "£100 Bill Credit",
-                "Setup_Cost": 0.00
-            }
-        ]
-
-        st.markdown("---")
-        st.markdown("### 🏷️ Best Market Deals & Price Schedules")
-        
-        st.markdown("""
-        <div class="disclaimer-box">
-            ℹ️ <strong>Ofcom Price Transparency Disclosure:</strong> Standard monthly prices and scheduled fixed step increases are shown across your 24-month contract term.
-        </div>
-        """, unsafe_allow_html=True)
-
-        for d in deals:
-            monthly_diff = current_bill - d['Cost_Current']
-            speed_diff = d['Speed_Mbps'] - current_speed
-            speed_text = f"+{speed_diff} Mbps Faster" if speed_diff > 0 else f"{abs(speed_diff)} Mbps Slower"
-            net_switch_cost = max(0.0, est_exit_fee - d['Switch_Credit'])
-            
-            buyout_html = ""
-            if contract_status == "In Contract" and est_exit_fee > 0:
-                if d['Switch_Credit'] >= est_exit_fee:
-                    buyout_html = f"<span class='badge badge-credit'>✅ Switch Credit (£{d['Switch_Credit']:.0f}) covers your £{est_exit_fee:.2f} exit fee</span>"
-                else:
-                    buyout_html = f"<span class='badge badge-credit'>⚡ Credit covers £{d['Switch_Credit']:.0f} of exit fee (Net: £{net_switch_cost:.2f})</span>"
-
-            financial_text = f"Save £{monthly_diff:.2f}/mo" if monthly_diff > 0 else f"+£{abs(monthly_diff):.2f}/mo upgrade"
-            financial_color = "#16a34a" if monthly_diff > 0 else "#c2410c"
-
-            if d['Has_Price_Rise']:
-                badge_rise = "<span class='badge' style='background-color: #fff7ed; color: #c2410c; border: 1px solid #ffedd5;'>⚠️ Price rises each March in contract by £4.00</span>"
+                today = datetime.date.today()
+                if expiry_date > today:
+                    days_left = (expiry_date - today).days
+                    months_left = round(days_left / 30.44, 1)
+                    calc_fee = round((current_bill * 0.80) * months_left, 2)
+                    
+                    override_fee = st.checkbox("Exact quote fee", value=False)
+                    if override_fee:
+                        est_exit_fee = st.number_input("Exact Exit Fee (£):", min_value=0.0, value=65.00, step=5.0)
+                    else:
+                        est_exit_fee = calc_fee
+                    st.caption(f"⏱️ **Exit Fee Estimate:** ~£{est_exit_fee:.2f} ({months_left} mos remaining)")
             else:
-                badge_rise = "<span class='badge badge-fixed'>🔒 No price rise during contract</span>"
+                with col_in5:
+                    st.write("")
 
-            # Render Uswitch-styled compact card
-            card_html = f"""<div class="deal-card-container">
+        st.divider()
+
+        # TWO-COLUMN LAYOUT: Left USwitch Filter Sidebar + Right Deal Results
+        col_filter, col_deals = st.columns([1, 2.8])
+
+        # LEFT COLUMN: USWITCH-STYLE FILTER SIDEBAR
+        with col_filter:
+            st.markdown("#### 🔍 Filter Deals")
+            
+            with st.expander("🎁 Special Offers", expanded=True):
+                opt_early_credit = st.checkbox("Early switch credit available", value=True)
+                opt_no_price_rise = st.checkbox("No price rise during contract", value=False)
+
+            with st.expander("⚡ Download Speed", expanded=True):
+                min_speed_filter = st.radio(
+                    "Minimum Speed Tier:",
+                    ["All Speeds", "100+ Mbps", "300+ Mbps", "900+ Mbps"],
+                    index=0
+                )
+
+            with st.expander("🌐 Connection Type", expanded=False):
+                type_fttp = st.checkbox("Full Fibre (FTTP)", value=True)
+                type_cable = st.checkbox("Cable / Virgin", value=True)
+                type_5g = st.checkbox("5G Home Broadband", value=False)
+
+            with st.expander("⏱️ Contract Length", expanded=False):
+                contract_len = st.multiselect("Contract Duration:", ["12 Months", "18 Months", "24 Months"], default=["24 Months"])
+
+            with st.expander("💷 Monthly Cost Range", expanded=False):
+                max_price_slider = st.slider("Max Monthly Budget (£):", min_value=20, max_value=70, value=50, step=5)
+
+        # RIGHT COLUMN: DEALS & CARDS
+        with col_deals:
+            # Master Deals Dataset
+            all_deals = [
+                {
+                    "Provider": "EE Full Fibre 1.6Gbps",
+                    "Logo_Class": "logo-ee",
+                    "Logo_Text": "EE",
+                    "Best_Source": "Via Uswitch",
+                    "Speed_Mbps": 1600,
+                    "Speed_Display": "1600 Mbps",
+                    "Network": "Openreach FTTP",
+                    "Cost_Current": 33.99,
+                    "Avg_Monthly": 37.24,
+                    "Has_Price_Rise": True,
+                    "Contract_Months": "24 Months",
+                    "Switch_Credit": 300.00,
+                    "Reward_Voucher": "£150 Reward Card",
+                    "Setup_Cost": 30.00
+                },
+                {
+                    "Provider": "YouFibre YOU 1000",
+                    "Logo_Class": "logo-youfibre",
+                    "Logo_Text": "YF",
+                    "Best_Source": "Via Direct Deal",
+                    "Speed_Mbps": 1000,
+                    "Speed_Display": "1000 Mbps",
+                    "Network": "YouFibre Altnet",
+                    "Cost_Current": 25.00,
+                    "Avg_Monthly": 25.00,
+                    "Has_Price_Rise": False,
+                    "Contract_Months": "24 Months",
+                    "Switch_Credit": 100.00,
+                    "Reward_Voucher": "No Setup Fee",
+                    "Setup_Cost": 0.00
+                },
+                {
+                    "Provider": "Virgin Media Gig1",
+                    "Logo_Class": "logo-virgin",
+                    "Logo_Text": "VM",
+                    "Best_Source": "Via Uswitch Exclusive",
+                    "Speed_Mbps": 1130,
+                    "Speed_Display": "1130 Mbps",
+                    "Network": "Virgin Cable / Nexfibre",
+                    "Cost_Current": 39.00,
+                    "Avg_Monthly": 41.90,
+                    "Has_Price_Rise": True,
+                    "Contract_Months": "24 Months",
+                    "Switch_Credit": 100.00,
+                    "Reward_Voucher": "£100 Bill Credit",
+                    "Setup_Cost": 0.00
+                }
+            ]
+
+            # Filter Logic Application
+            filtered_deals = []
+            for d in all_deals:
+                # Speed Filter
+                if min_speed_filter == "100+ Mbps" and d['Speed_Mbps'] < 100: continue
+                if min_speed_filter == "300+ Mbps" and d['Speed_Mbps'] < 300: continue
+                if min_speed_filter == "900+ Mbps" and d['Speed_Mbps'] < 900: continue
+                
+                # No Price Rise Filter
+                if opt_no_price_rise and d['Has_Price_Rise']: continue
+                
+                # Max Price Filter
+                if d['Cost_Current'] > max_price_slider: continue
+
+                filtered_deals.append(d)
+
+            st.markdown(f"**Showing {len(filtered_deals)} of {len(all_deals)} matching deals** for `{active_postcode}`")
+
+            for d in filtered_deals:
+                monthly_diff = current_bill - d['Cost_Current']
+                speed_diff = d['Speed_Mbps'] - current_speed
+                speed_text = f"+{speed_diff} Mbps Faster" if speed_diff > 0 else f"{abs(speed_diff)} Mbps Slower"
+                net_switch_cost = max(0.0, est_exit_fee - d['Switch_Credit'])
+                
+                buyout_html = ""
+                if contract_status == "In Contract" and est_exit_fee > 0:
+                    if d['Switch_Credit'] >= est_exit_fee:
+                        buyout_html = f"<span class='badge badge-credit'>✅ Switch Credit (£{d['Switch_Credit']:.0f}) covers exit fee</span>"
+                    else:
+                        buyout_html = f"<span class='badge badge-credit'>⚡ Credit covers £{d['Switch_Credit']:.0f} (Net fee: £{net_switch_cost:.2f})</span>"
+
+                financial_text = f"Save £{monthly_diff:.2f}/mo" if monthly_diff > 0 else f"+£{abs(monthly_diff):.2f}/mo upgrade"
+                financial_color = "#16a34a" if monthly_diff > 0 else "#c2410c"
+
+                if d['Has_Price_Rise']:
+                    badge_rise = "<span class='badge' style='background-color: #fff7ed; color: #c2410c; border: 1px solid #ffedd5;'>⚠️ Price rises each March in contract by £4.00</span>"
+                else:
+                    badge_rise = "<span class='badge badge-fixed'>🔒 No price rise during contract</span>"
+
+                card_html = f"""<div class="deal-card-container">
 <div class="deal-card">
 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
 <div style="display: flex; align-items: center;">
@@ -566,7 +588,7 @@ if 'active_address' in st.session_state:
 </div>
 </div>"""
 
-            st.markdown(card_html, unsafe_allow_html=True)
+                st.markdown(card_html, unsafe_allow_html=True)
 
     # ===================================================================
     # TAB 2: TV, SPORTS & STREAMING AUDIT
