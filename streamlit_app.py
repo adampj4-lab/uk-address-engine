@@ -19,11 +19,11 @@ st.markdown("""
     
     .deal-card {
         background-color: #ffffff;
-        padding: 18px 22px;
+        padding: 20px 24px;
         border-radius: 12px;
         border-left: 5px solid #2563eb;
         box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-        margin-bottom: 14px;
+        margin-bottom: 16px;
         border-top: 1px solid #f1f5f9;
         border-right: 1px solid #f1f5f9;
         border-bottom: 1px solid #f1f5f9;
@@ -47,9 +47,21 @@ st.markdown("""
         border: 1px solid #e2e8f0;
         margin-bottom: 16px;
     }
-    .deal-title { font-size: 1.1rem; font-weight: 700; color: #1e293b; }
-    .deal-price { font-size: 1.4rem; font-weight: 800; color: #16a34a; }
+    .deal-title { font-size: 1.15rem; font-weight: 700; color: #1e293b; }
+    .deal-price { font-size: 1.5rem; font-weight: 800; color: #2563eb; }
     
+    /* Price Steps Schedule Box */
+    .price-steps-box {
+        background-color: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin-top: 12px;
+        margin-bottom: 12px;
+    }
+    .step-label { font-size: 0.8rem; color: #64748b; text-transform: uppercase; font-weight: 600; }
+    .step-val { font-size: 1.05rem; font-weight: 700; color: #0f172a; }
+
     /* Prevent metric label truncation/ellipsis */
     [data-testid="stMetricLabel"] {
         white-space: normal !important;
@@ -70,6 +82,7 @@ st.markdown("""
     .badge-speed { background-color: #f0fdf4; color: #166534; }
     .badge-tenure { background-color: #fef3c7; color: #92400e; }
     .badge-type { background-color: #f3e8ff; color: #6b21a8; }
+    .badge-fixed { background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
     
     /* EPC Styling */
     .epc-box {
@@ -371,7 +384,7 @@ if 'active_address' in st.session_state:
     tab_banking = tabs[7]
     
     # ===================================================================
-    # TAB 1: BROADBAND
+    # TAB 1: BROADBAND (WITH OFCOM POUNDS & PENCE PRICE STEP TIMELINE)
     # ===================================================================
     with tab_broadband:
         st.subheader("🌐 Network Infrastructure Availability")
@@ -419,23 +432,63 @@ if 'active_address' in st.session_state:
         else:
             with col_in5: st.write("")
 
+        # Deals dataset incorporating step-up pricing schedules across contract lifetime
         deals = [
-            {"Provider": "EE Full Fibre 900", "Speed_Mbps": 900, "Speed_Display": "900 Mbps", "Cost": 25.99, "Network": "Openreach FTTP", "Switch_Credit": 300.00, "Perks": "Up to £300 Contract Buyout Credit"},
-            {"Provider": "Vodafone Full Fibre 900", "Speed_Mbps": 910, "Speed_Display": "910 Mbps", "Cost": 32.00, "Network": "Openreach / CityFibre", "Switch_Credit": 100.00, "Perks": "Up to £100 Switch Credit / Gift Card"},
-            {"Provider": "Virgin Media Gig1", "Speed_Mbps": 1130, "Speed_Display": "1,130 Mbps", "Cost": 39.00, "Network": "Virgin Cable / Nexfibre", "Switch_Credit": 100.00, "Perks": "£100 Bill Credit towards contract buyout"}
+            {
+                "Provider": "EE Full Fibre 1.6Gbps",
+                "Best_Source": "Via Uswitch",
+                "Speed_Mbps": 1600,
+                "Speed_Display": "1,600 Mbps",
+                "Network": "Openreach FTTP",
+                "Cost_Current": 33.99,
+                "Cost_April_2027": 37.99,
+                "Cost_April_2028": 41.99,
+                "Avg_Monthly": 37.24,
+                "Has_Price_Rise": True,
+                "Switch_Credit": 300.00,
+                "Perks": "£150 Reward Card + Up to £300 Early Exit Buyout Credit"
+            },
+            {
+                "Provider": "YouFibre Ultrafast 1000",
+                "Best_Source": "Via Direct Deal",
+                "Speed_Mbps": 1000,
+                "Speed_Display": "1,000 Mbps",
+                "Network": "YouFibre Altnet",
+                "Cost_Current": 25.00,
+                "Cost_April_2027": 25.00,
+                "Cost_April_2028": 25.00,
+                "Avg_Monthly": 25.00,
+                "Has_Price_Rise": False,
+                "Switch_Credit": 100.00,
+                "Perks": "Fixed Price Guarantee (No mid-contract price rises)"
+            },
+            {
+                "Provider": "Virgin Media Gig1",
+                "Best_Source": "Via Uswitch Exclusive",
+                "Speed_Mbps": 1130,
+                "Speed_Display": "1,130 Mbps",
+                "Network": "Virgin Cable / Nexfibre",
+                "Cost_Current": 39.00,
+                "Cost_April_2027": 42.50,
+                "Cost_April_2028": 46.00,
+                "Avg_Monthly": 41.90,
+                "Has_Price_Rise": True,
+                "Switch_Credit": 100.00,
+                "Perks": "£100 Bill Credit towards contract buyout"
+            }
         ]
 
         st.markdown("---")
-        st.markdown("### 🏷️ Market Options vs Your Current Package")
+        st.markdown("### 🏷️ Best Market Deals & Exact Monthly Price Schedule")
         
         st.markdown("""
         <div class="disclaimer-box">
-            ⚠️ <strong>Disclaimer on Early Termination Fees:</strong> Contract exit costs and switch credit absorbency shown below are <strong>estimates for guidance only</strong> based on standard UK industry calculations (less VAT & non-consumed service charges). Always verify your exact early exit fee directly with your current provider before placing a switch order.
+            ℹ️ <strong>Ofcom Price Transparency Disclosure:</strong> Standard monthly prices and scheduled fixed-amount step increases (in £/p) are shown for each package across your 24-month contract term.
         </div>
         """, unsafe_allow_html=True)
 
         for d in deals:
-            monthly_diff = current_bill - d['Cost']
+            monthly_diff = current_bill - d['Cost_Current']
             annual_net_saving = monthly_diff * 12
             speed_diff = d['Speed_Mbps'] - current_speed
             speed_text = f"🚀 +{speed_diff} Mbps Faster" if speed_diff > 0 else f"📉 {abs(speed_diff)} Mbps Slower"
@@ -448,25 +501,58 @@ if 'active_address' in st.session_state:
                 else:
                     buyout_html = f"<div style='font-size: 0.85rem; color: #d97706; font-weight: 600; margin-top: 6px;'>⚡ Credit covers £{d['Switch_Credit']:.0f} of exit fee (Net cost to leave: £{net_switch_cost:.2f})</div>"
 
-            financial_text = f"Save £{monthly_diff:.2f}/mo (£{annual_net_saving:.2f}/yr)" if monthly_diff > 0 else f"+£{abs(monthly_diff):.2f}/mo for speed upgrade"
+            financial_text = f"Save £{monthly_diff:.2f}/mo initially" if monthly_diff > 0 else f"+£{abs(monthly_diff):.2f}/mo upgrade"
             financial_color = "#16a34a" if monthly_diff > 0 else "#d97706"
+
+            if d['Has_Price_Rise']:
+                badge_rise = "<span class='badge' style='background-color: #fff7ed; color: #c2410c; border: 1px solid #ffedd5;'>⚠️ Scheduled Annual Price Steps</span>"
+            else:
+                badge_rise = "<span class='badge badge-fixed'>🔒 Fixed Price During Contract</span>"
 
             st.markdown(f"""
             <div class="deal-card">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div>
-                        <div class="deal-title">{d['Provider']}</div>
+                        <div class="deal-title">{d['Provider']} <span style="font-size: 0.85rem; color: #2563eb; font-weight: 600;">({d['Best_Source']})</span></div>
                         <div style="margin-top: 6px;">
                             <span class="badge badge-speed">{d['Speed_Display']} ({speed_text})</span>
                             <span class="badge">🌐 {d['Network']}</span>
+                            {badge_rise}
                         </div>
-                        <div style="font-size: 0.85rem; color: #64748b; margin-top: 8px;">🎁 {d['Perks']}</div>
-                        {buyout_html}
                     </div>
                     <div style="text-align: right;">
-                        <div class="deal-price">£{d['Cost']:.2f} <span style="font-size: 0.8rem; font-weight: normal; color: #64748b;">/mo</span></div>
+                        <div class="deal-price">£{d['Cost_Current']:.2f} <span style="font-size: 0.85rem; font-weight: normal; color: #64748b;">/mo</span></div>
                         <div style="font-size: 0.85rem; font-weight: 700; color: {financial_color};">{financial_text}</div>
                     </div>
+                </div>
+
+                <!-- Price Schedule Step Box -->
+                <div class="price-steps-box">
+                    <div style="display: flex; justify-content: space-between; align-items: center; text-align: center;">
+                        <div style="flex: 1;">
+                            <div class="step-label">Today – March 2027</div>
+                            <div class="step-val">£{d['Cost_Current']:.2f} /mo</div>
+                        </div>
+                        <div style="color: #cbd5e1; font-size: 1.2rem;">➔</div>
+                        <div style="flex: 1;">
+                            <div class="step-label">April 2027 Increase</div>
+                            <div class="step-val">£{d['Cost_April_2027']:.2f} /mo</div>
+                        </div>
+                        <div style="color: #cbd5e1; font-size: 1.2rem;">➔</div>
+                        <div style="flex: 1;">
+                            <div class="step-label">April 2028 Increase</div>
+                            <div class="step-val">£{d['Cost_April_2028']:.2f} /mo</div>
+                        </div>
+                        <div style="border-left: 1px solid #cbd5e1; padding-left: 12px; flex: 1.2; text-align: right;">
+                            <div class="step-label">True 24-Mo Average</div>
+                            <div class="step-val" style="color: #2563eb;">£{d['Avg_Monthly']:.2f} /mo</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-size: 0.85rem; color: #64748b;">🎁 <strong>Incentives:</strong> {d['Perks']}</div>
+                    {buyout_html}
                 </div>
             </div>
             """, unsafe_allow_html=True)
