@@ -6,7 +6,7 @@ import pandas as pd
 
 # Page Configuration
 st.set_page_config(
-    page_title="Household Optimization Engine", 
+    page_title="Household Optimisation Engine", 
     page_icon="⚡", 
     layout="wide",
     initial_sidebar_state="expanded"
@@ -354,7 +354,7 @@ with st.sidebar:
 # -------------------------------------------------------------------
 # MAIN DASHBOARD
 # -------------------------------------------------------------------
-st.title("⚡ Household Optimization Engine")
+st.title("⚡ Household Optimisation Engine")
 st.caption("Real-time property infrastructure scanning & cost optimization portal.")
 
 if 'active_address' in st.session_state:
@@ -384,7 +384,7 @@ if 'active_address' in st.session_state:
     tab_banking = tabs[7]
     
     # ===================================================================
-    # TAB 1: BROADBAND (WITH OFCOM POUNDS & PENCE PRICE STEP TIMELINE)
+    # TAB 1: BROADBAND
     # ===================================================================
     with tab_broadband:
         st.subheader("🌐 Network Infrastructure Availability")
@@ -432,7 +432,6 @@ if 'active_address' in st.session_state:
         else:
             with col_in5: st.write("")
 
-        # Deals dataset incorporating step-up pricing schedules across contract lifetime
         deals = [
             {
                 "Provider": "EE Full Fibre 1.6Gbps",
@@ -509,53 +508,51 @@ if 'active_address' in st.session_state:
             else:
                 badge_rise = "<span class='badge badge-fixed'>🔒 Fixed Price During Contract</span>"
 
-            st.markdown(f"""
-            <div class="deal-card">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <div>
-                        <div class="deal-title">{d['Provider']} <span style="font-size: 0.85rem; color: #2563eb; font-weight: 600;">({d['Best_Source']})</span></div>
-                        <div style="margin-top: 6px;">
-                            <span class="badge badge-speed">{d['Speed_Display']} ({speed_text})</span>
-                            <span class="badge">🌐 {d['Network']}</span>
-                            {badge_rise}
-                        </div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div class="deal-price">£{d['Cost_Current']:.2f} <span style="font-size: 0.85rem; font-weight: normal; color: #64748b;">/mo</span></div>
-                        <div style="font-size: 0.85rem; font-weight: 700; color: {financial_color};">{financial_text}</div>
-                    </div>
-                </div>
+            # Render HTML without internal multiline indentations/comments to prevent parser breaks
+            card_html = f"""<div class="deal-card">
+<div style="display: flex; justify-content: space-between; align-items: flex-start;">
+<div>
+<div class="deal-title">{d['Provider']} <span style="font-size: 0.85rem; color: #2563eb; font-weight: 600;">({d['Best_Source']})</span></div>
+<div style="margin-top: 6px;">
+<span class="badge badge-speed">{d['Speed_Display']} ({speed_text})</span>
+<span class="badge">🌐 {d['Network']}</span>
+{badge_rise}
+</div>
+</div>
+<div style="text-align: right;">
+<div class="deal-price">£{d['Cost_Current']:.2f} <span style="font-size: 0.85rem; font-weight: normal; color: #64748b;">/mo</span></div>
+<div style="font-size: 0.85rem; font-weight: 700; color: {financial_color};">{financial_text}</div>
+</div>
+</div>
+<div class="price-steps-box">
+<div style="display: flex; justify-content: space-between; align-items: center; text-align: center;">
+<div style="flex: 1;">
+<div class="step-label">Today – March 2027</div>
+<div class="step-val">£{d['Cost_Current']:.2f} /mo</div>
+</div>
+<div style="color: #cbd5e1; font-size: 1.2rem;">➔</div>
+<div style="flex: 1;">
+<div class="step-label">April 2027 Increase</div>
+<div class="step-val">£{d['Cost_April_2027']:.2f} /mo</div>
+</div>
+<div style="color: #cbd5e1; font-size: 1.2rem;">➔</div>
+<div style="flex: 1;">
+<div class="step-label">April 2028 Increase</div>
+<div class="step-val">£{d['Cost_April_2028']:.2f} /mo</div>
+</div>
+<div style="border-left: 1px solid #cbd5e1; padding-left: 12px; flex: 1.2; text-align: right;">
+<div class="step-label">True 24-Mo Average</div>
+<div class="step-val" style="color: #2563eb;">£{d['Avg_Monthly']:.2f} /mo</div>
+</div>
+</div>
+</div>
+<div style="display: flex; justify-content: space-between; align-items: center;">
+<div style="font-size: 0.85rem; color: #64748b;">🎁 <strong>Incentives:</strong> {d['Perks']}</div>
+{buyout_html}
+</div>
+</div>"""
 
-                <!-- Price Schedule Step Box -->
-                <div class="price-steps-box">
-                    <div style="display: flex; justify-content: space-between; align-items: center; text-align: center;">
-                        <div style="flex: 1;">
-                            <div class="step-label">Today – March 2027</div>
-                            <div class="step-val">£{d['Cost_Current']:.2f} /mo</div>
-                        </div>
-                        <div style="color: #cbd5e1; font-size: 1.2rem;">➔</div>
-                        <div style="flex: 1;">
-                            <div class="step-label">April 2027 Increase</div>
-                            <div class="step-val">£{d['Cost_April_2027']:.2f} /mo</div>
-                        </div>
-                        <div style="color: #cbd5e1; font-size: 1.2rem;">➔</div>
-                        <div style="flex: 1;">
-                            <div class="step-label">April 2028 Increase</div>
-                            <div class="step-val">£{d['Cost_April_2028']:.2f} /mo</div>
-                        </div>
-                        <div style="border-left: 1px solid #cbd5e1; padding-left: 12px; flex: 1.2; text-align: right;">
-                            <div class="step-label">True 24-Mo Average</div>
-                            <div class="step-val" style="color: #2563eb;">£{d['Avg_Monthly']:.2f} /mo</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div style="font-size: 0.85rem; color: #64748b;">🎁 <strong>Incentives:</strong> {d['Perks']}</div>
-                    {buyout_html}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(card_html, unsafe_allow_html=True)
 
     # ===================================================================
     # TAB 2: TV, SPORTS & STREAMING AUDIT
@@ -754,26 +751,22 @@ if 'active_address' in st.session_state:
     # TAB 6: CRIME PROFILE (POLICE.UK OPEN DATA)
     # ===================================================================
     with tab_crime:
-        # Step back 2 full months to ensure the window ends on a fully locked and completed month
         current_date = datetime.date.today()
         first_day_current = current_date.replace(day=1)
         last_completed_month = first_day_current - datetime.timedelta(days=28)
         last_completed_month = last_completed_month.replace(day=1) - datetime.timedelta(days=1)
         
-        # Go back 12 months from that fully locked month
         start_window_date = last_completed_month.replace(year=last_completed_month.year - 1)
         
         window_start_str = start_window_date.strftime("%B %Y")
         window_end_str = last_completed_month.strftime("%B %Y")
 
-        # Generate 12 months descending (newest locked month first)
         months_list = []
         curr = last_completed_month
         for _ in range(12):
             months_list.append(curr.strftime("%Y-%m"))
             curr = (curr.replace(day=1) - datetime.timedelta(days=1))
 
-        # Dataset for detailed incident log
         crime_detailed_data = pd.DataFrame({
             "Month": months_list,
             "Crime Category": [
@@ -796,7 +789,6 @@ if 'active_address' in st.session_state:
             ]
         })
 
-        # Calculate dynamic summary metrics based directly on the dataset length
         total_crimes = len(crime_detailed_data)
         top_category = crime_detailed_data["Crime Category"].mode()[0]
         top_cat_count = (crime_detailed_data["Crime Category"] == top_category).sum()
@@ -819,7 +811,6 @@ if 'active_address' in st.session_state:
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown(f"#### 📊 12-Month Incident Log ({window_start_str} – {window_end_str})")
         
-        # Interactive View Switcher
         view_mode = st.radio(
             "Group Data By:", 
             ["Crime Category", "Month", "Flat List (All Incidents)"], 
