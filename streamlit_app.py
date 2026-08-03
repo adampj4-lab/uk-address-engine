@@ -680,6 +680,42 @@ if 'active_address' in st.session_state:
         window_start_str = start_window_date.strftime("%B %Y")
         window_end_str = last_completed_month.strftime("%B %Y")
 
+        # Generate 12 months descending (newest locked month first)
+        months_list = []
+        curr = last_completed_month
+        for _ in range(12):
+            months_list.append(curr.strftime("%Y-%m"))
+            curr = (curr.replace(day=1) - datetime.timedelta(days=1))
+
+        # Dataset for detailed incident log
+        crime_detailed_data = pd.DataFrame({
+            "Month": months_list,
+            "Crime Category": [
+                "Anti-Social Behaviour", "Violence and Sexual Offences", "Public Order", 
+                "Other Theft", "Anti-Social Behaviour", "Bicycle Theft", 
+                "Public Order", "Violence and Sexual Offences", "Anti-Social Behaviour", 
+                "Other Theft", "Public Order", "Anti-Social Behaviour"
+            ],
+            "Approx. Street Location": [
+                "On or near Sandbed Close", "On or near Woodlands Way", "On or near Park Avenue", 
+                "On or near Church Lane", "On or near Sandbed Court", "On or near Station Road", 
+                "On or near Woodlands Way", "On or near Park Avenue", "On or near Sandbed Close", 
+                "On or near Church Lane", "On or near Station Road", "On or near Sandbed Court"
+            ],
+            "Outcome Status": [
+                "Investigation complete (No suspect identified)", "Under investigation", "Action taken by police", 
+                "Investigation complete (No suspect identified)", "Investigation complete (No suspect identified)", "Unable to prosecute suspect", 
+                "Action taken by police", "Under investigation", "Investigation complete (No suspect identified)", 
+                "Investigation complete (No suspect identified)", "Awaiting court outcome", "Investigation complete (No suspect identified)"
+            ]
+        })
+
+        # Calculate dynamic summary metrics based directly on the dataset length
+        total_crimes = len(crime_detailed_data)
+        top_category = crime_detailed_data["Crime Category"].mode()[0]
+        top_cat_count = (crime_detailed_data["Crime Category"] == top_category).sum()
+        top_cat_pct = int(round((top_cat_count / total_crimes) * 100))
+
         st.markdown(f"""
         <div class="info-card">
             <h3 style="margin-top: 0; color: #1e293b;">🚨 Neighbourhood Crime & Safety Profile</h3>
@@ -688,9 +724,9 @@ if 'active_address' in st.session_state:
 
         col_c1, col_c2, col_c3 = st.columns(3)
         with col_c1:
-            st.metric("12-Month Total Incidents", "168 crimes", delta="-4% vs regional avg")
+            st.metric("12-Month Total Incidents", f"{total_crimes} crimes", delta="-4% vs regional avg")
         with col_c2:
-            st.metric("Primary Crime Category", "Anti-Social Behaviour", delta="38% of local reports")
+            st.metric("Primary Crime Category", top_category, delta=f"{top_cat_pct}% of local reports")
         with col_c3:
             st.metric("Safety Index", "Above Average", delta="Low risk profile")
 
@@ -714,35 +750,6 @@ if 'active_address' in st.session_state:
             horizontal=True
         )
 
-        # Generate 12 months descending (newest locked month first)
-        months_list = []
-        curr = last_completed_month
-        for _ in range(12):
-            months_list.append(curr.strftime("%Y-%m"))
-            curr = (curr.replace(day=1) - datetime.timedelta(days=1))
-
-        crime_detailed_data = pd.DataFrame({
-            "Month": months_list,
-            "Crime Category": [
-                "Anti-Social Behaviour", "Violence and Sexual Offences", "Public Order", 
-                "Other Theft", "Anti-Social Behaviour", "Bicycle Theft", 
-                "Public Order", "Violence and Sexual Offences", "Anti-Social Behaviour", 
-                "Other Theft", "Public Order", "Anti-Social Behaviour"
-            ],
-            "Approx. Street Location": [
-                "On or near Sandbed Close", "On or near Woodlands Way", "On or near Park Avenue", 
-                "On or near Church Lane", "On or near Sandbed Court", "On or near Station Road", 
-                "On or near Woodlands Way", "On or near Park Avenue", "On or near Sandbed Close", 
-                "On or near Church Lane", "On or near Station Road", "On or near Sandbed Court"
-            ],
-            "Outcome Status": [
-                "Investigation complete (No suspect identified)", "Under investigation", "Action taken by police", 
-                "Investigation complete (No suspect identified)", "Investigation complete (No suspect identified)", "Unable to prosecute suspect", 
-                "Action taken by police", "Under investigation", "Investigation complete (No suspect identified)", 
-                "Investigation complete (No suspect identified)", "Awaiting court outcome", "Investigation complete (No suspect identified)"
-            ]
-        })
-        
         if view_mode == "Crime Category":
             categories = crime_detailed_data["Crime Category"].unique()
             for cat in categories:
