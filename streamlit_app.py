@@ -668,7 +668,7 @@ if 'active_address' in st.session_state:
     # TAB 6: CRIME PROFILE (POLICE.UK OPEN DATA)
     # ===================================================================
     with tab_crime:
-        # Step back 2 full months to ensure the window ends on a fully locked and completed month (e.g., June if viewed in August)
+        # Step back 2 full months to ensure the window ends on a fully locked and completed month
         current_date = datetime.date.today()
         first_day_current = current_date.replace(day=1)
         last_completed_month = first_day_current - datetime.timedelta(days=28)
@@ -729,16 +729,6 @@ if 'active_address' in st.session_state:
             st.metric("Primary Crime Category", top_category, delta=f"{top_cat_pct}% of local reports")
         with col_c3:
             st.metric("Safety Index", "Above Average", delta="Low risk profile")
-
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("#### 🗺️ Incident Location Map")
-        st.caption("Visual distribution of recent crime reports across local street approximations.")
-
-        map_data = pd.DataFrame({
-            "lat": [53.8125, 53.8132, 53.8118, 53.8140, 53.8105, 53.8122, 53.8145],
-            "lon": [-1.4652, -1.4635, -1.4670, -1.4620, -1.4685, -1.4640, -1.4615]
-        })
-        st.map(map_data, zoom=14, use_container_width=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown(f"#### 📊 12-Month Incident Log ({window_start_str} – {window_end_str})")
