@@ -400,7 +400,7 @@ if 'active_address' in st.session_state:
             
             if contract_status == "In Contract":
                 with col_in5:
-                    expiry_date = st.date_input("Expiry Date:", value=datetime.date(2027, 2, 5), format="DD/MM/YYYY")
+                    expiry_date = st.date_input("Contract Expiry:", value=datetime.date(2027, 2, 5), format="DD/MM/YYYY")
                 
                 today = datetime.date.today()
                 if expiry_date > today:
@@ -408,12 +408,15 @@ if 'active_address' in st.session_state:
                     months_left = round(days_left / 30.44, 1)
                     calc_fee = round((current_bill * 0.80) * months_left, 2)
                     
-                    override_fee = st.checkbox("Exact quote fee", value=False)
-                    if override_fee:
-                        est_exit_fee = st.number_input("Exact Exit Fee (£):", min_value=0.0, value=65.00, step=5.0)
-                    else:
-                        est_exit_fee = calc_fee
-                    st.caption(f"⏱️ **Exit Fee Estimate:** ~£{est_exit_fee:.2f} ({months_left} mos remaining)")
+                    col_fee1, col_fee2 = st.columns([1.8, 1])
+                    with col_fee1:
+                        override_fee = st.checkbox("Override with exact provider quote", value=False)
+                    with col_fee2:
+                        if override_fee:
+                            est_exit_fee = st.number_input("Exact Early Exit Fee (£):", min_value=0.0, value=65.00, step=5.0)
+                        else:
+                            est_exit_fee = calc_fee
+                            st.caption(f"⏱️ **Est. Exit Fee:** ~£{est_exit_fee:.2f} ({months_left} mos remaining)")
             else:
                 with col_in5:
                     st.write("")
@@ -454,6 +457,7 @@ if 'active_address' in st.session_state:
             all_deals = [
                 {
                     "Provider": "EE Full Fibre 1.6Gbps",
+                    "Provider_Code": "ee-1600",
                     "Logo_Class": "logo-ee",
                     "Logo_Text": "EE",
                     "Best_Source": "Via Uswitch",
@@ -468,10 +472,12 @@ if 'active_address' in st.session_state:
                     "Contract_Months": "24 Months",
                     "Switch_Credit": 300.00,
                     "Reward_Voucher": "£150 Reward Card",
+                    "Cashback_Val": "45.00",
                     "Setup_Cost": 30.00
                 },
                 {
                     "Provider": "YouFibre YOU 1000",
+                    "Provider_Code": "youfibre-1000",
                     "Logo_Class": "logo-youfibre",
                     "Logo_Text": "YF",
                     "Best_Source": "Via Direct Deal",
@@ -486,10 +492,12 @@ if 'active_address' in st.session_state:
                     "Contract_Months": "24 Months",
                     "Switch_Credit": 100.00,
                     "Reward_Voucher": "No Setup Fee",
+                    "Cashback_Val": "35.00",
                     "Setup_Cost": 0.00
                 },
                 {
                     "Provider": "Virgin Media Gig1",
+                    "Provider_Code": "virgin-gig1",
                     "Logo_Class": "logo-virgin",
                     "Logo_Text": "VM",
                     "Best_Source": "Via Uswitch Exclusive",
@@ -504,6 +512,7 @@ if 'active_address' in st.session_state:
                     "Contract_Months": "24 Months",
                     "Switch_Credit": 100.00,
                     "Reward_Voucher": "£100 Bill Credit",
+                    "Cashback_Val": "50.00",
                     "Setup_Cost": 0.00
                 }
             ]
@@ -541,7 +550,6 @@ if 'active_address' in st.session_state:
                 else:
                     badge_rise = "<span class='badge badge-fixed'>🔒 No price rise during contract</span>"
 
-                # Integrated Ofcom Step-Up Schedule Box inside Uswitch Card
                 card_html = f"""<div class="deal-card-container">
 <div class="deal-card">
 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
@@ -566,7 +574,6 @@ if 'active_address' in st.session_state:
 <div style="text-align: right; font-size: 0.75rem; color: #64748b;">£{d['Setup_Cost']:.2f} setup cost • 24 month contract</div>
 </div>
 
-<!-- Restored Ofcom Step-Up Price Timeline Schedule Box -->
 <div class="price-steps-box">
 <div style="display: flex; justify-content: space-between; align-items: center; text-align: center;">
 <div style="flex: 1;">
@@ -590,12 +597,24 @@ if 'active_address' in st.session_state:
 </div>
 </div>
 
-<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid #f1f5f9;">
 <div>
 <span class="badge badge-perk">🎁 {d['Reward_Voucher']}</span>
 {buyout_html}
 </div>
-<div style="font-size: 0.85rem; font-weight: 800; color: {financial_color};">{financial_text}</div>
+<div style="display: flex; gap: 8px; align-items: center;">
+<span style="font-size: 0.85rem; font-weight: 800; color: {financial_color}; margin-right: 6px;">{financial_text}</span>
+<a href="https://www.quidco.com/uswitch-broadband/?uc={d['Provider_Code']}" target="_blank" style="text-decoration: none;">
+<button style="background-color: #0f172a; color: white; border: none; padding: 7px 12px; border-radius: 6px; font-weight: 700; font-size: 0.78rem; cursor: pointer;">
+⚡ Quidco + Uswitch (+£{d['Cashback_Val']})
+</button>
+</a>
+<a href="https://www.uswitch.com/broadband/deals/{d['Provider_Code']}" target="_blank" style="text-decoration: none;">
+<button style="background-color: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; padding: 7px 12px; border-radius: 6px; font-weight: 600; font-size: 0.78rem; cursor: pointer;">
+Direct Deal
+</button>
+</a>
+</div>
 </div>
 </div>
 </div>"""
