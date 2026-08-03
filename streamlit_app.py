@@ -410,48 +410,57 @@ if 'active_address' in st.session_state:
     with tab_broadband:
         st.markdown("### 📊 Household Contract & Speed Audit")
         
+        # Determine contract status first to render a single-line layout dynamically
+        # Temporary container to grab selection state
         with st.container():
-            col_in1, col_in2, col_in3, col_in4, col_in5 = st.columns([1.2, 1, 1.2, 1.2, 1.2])
+            # Check contract status state
+            contract_status_value = st.session_state.get("contract_status_select", "In Contract")
+            
+            if contract_status_value == "In Contract":
+                col_in1, col_in2, col_in3, col_in4, col_in5, col_in6 = st.columns([1.1, 1, 1.2, 1.1, 1.1, 1.1])
+            else:
+                col_in1, col_in2, col_in3, col_in4, col_in5 = st.columns([1.2, 1, 1.2, 1.2, 1.2])
             
             with col_in1:
-                current_provider = st.selectbox("Current Provider:", ["EE", "Vodafone", "BT Broadband", "Sky", "Virgin Media", "TalkTalk", "Other"])
+                current_provider = st.selectbox("Current Provider:", ["EE", "Vodafone", "BT Broadband", "Sky", "Virgin Media", "TalkTalk", "Other"], key="provider_select")
             with col_in2:
-                current_bill = st.number_input("Current Bill (£/mo):", min_value=10.0, max_value=150.0, value=30.0, step=1.0, help="Enter your current active bill (or post-discount price if out of contract).")
+                current_bill = st.number_input("Current Bill (£/mo):", min_value=10.0, max_value=150.0, value=30.0, step=1.0, help="Enter your current active bill (or post-discount price if out of contract).", key="bill_select")
             with col_in3:
-                speed_choice = st.selectbox("Current Package Speed:", ["67 Mbps (Standard Superfast)", "150 Mbps (Ultrafast)", "500 Mbps (Full Fibre)", "1,000 Mbps (Gigabit)", "Custom / Not Sure"])
-                if speed_choice == "67 Mbps (Standard Superfast)": current_speed = 67
+                speed_choice = st.selectbox("Current Speed:", ["67 Mbps (Standard)", "150 Mbps (Ultrafast)", "500 Mbps (Full Fibre)", "1,000 Mbps (Gigabit)", "Custom / Not Sure"], key="speed_select")
+                if speed_choice == "67 Mbps (Standard)": current_speed = 67
                 elif speed_choice == "150 Mbps (Ultrafast)": current_speed = 150
                 elif speed_choice == "500 Mbps (Full Fibre)": current_speed = 500
                 elif speed_choice == "1,000 Mbps (Gigabit)": current_speed = 1000
                 else: current_speed = 65
             with col_in4:
-                contract_status = st.selectbox("Contract Status:", ["In Contract", "Out of Contract (Rolling)", "Expiring within 30 Days"])
+                contract_status = st.selectbox("Contract Status:", ["In Contract", "Out of Contract (Rolling)", "Expiring within 30 Days"], key="contract_status_select")
             
             est_exit_fee = 0.0
             months_left = 0.0
             
             if contract_status == "In Contract":
                 with col_in5:
-                    expiry_date = st.date_input("Contract Expiry:", value=datetime.date(curr_year + 1, 2, 5), format="DD/MM/YYYY")
+                    expiry_date = st.date_input("Contract Expiry:", value=datetime.date(curr_year + 1, 2, 5), format="DD/MM/YYYY", key="expiry_select")
+                
+                if expiry_date > today_date:
+                    days_left = (expiry_date - today_date).days
+                    months_left = round(days_left / 30.44, 1)
+                    calc_fee = round((current_bill * 0.80) * months_left, 2)
+                else:
+                    calc_fee = 0.0
+                
+                with col_in6:
+                    est_exit_fee = st.number_input(
+                        "Est. Exit Fee (£):", 
+                        min_value=0.0, 
+                        value=float(calc_fee), 
+                        step=5.0, 
+                        help=f"Calculated estimate (~80% of remaining bill over {months_left} mos). You can type over this to enter an exact quote.",
+                        key="exit_fee_input"
+                    )
             else:
                 with col_in5:
-                    is_bundle = st.checkbox("Part of TV/Landline Bundle?", value=False)
-
-            # Tightly aligned exit fee override row sitting directly below contract parameters
-            if contract_status == "In Contract" and expiry_date > today_date:
-                days_left = (expiry_date - today_date).days
-                months_left = round(days_left / 30.44, 1)
-                calc_fee = round((current_bill * 0.80) * months_left, 2)
-
-                col_fee1, col_fee2 = st.columns([0.45, 0.55])
-                with col_fee1:
-                    override_fee = st.checkbox("Override with exact quote", value=False)
-                with col_fee2:
-                    if override_fee:
-                        est_exit_fee = st.number_input("Exact Early Exit Fee (£):", min_value=0.0, value=65.00, step=5.0, label_visibility="collapsed")
-                    else:
-                        est_exit_fee = calc_fee
-                        st.markdown(f"⏱️ **Est. Exit Fee:** ~£{est_exit_fee:.2f} ({months_left} mos left)")
+                    is_bundle = st.checkbox("Part of TV/Landline Bundle?", value=False, key="bundle_select")
 
         # Provider April Step-Up Warning Box (Dynamic Calculation)
         april_increase = PROVIDER_PRICE_RISES.get(current_provider, 3.50)
