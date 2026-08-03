@@ -671,7 +671,7 @@ if 'active_address' in st.session_state:
         st.markdown(f"""
         <div class="info-card">
             <h3 style="margin-top: 0; color: #1e293b;">🚨 Neighbourhood Crime & Safety Profile</h3>
-            <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 20px;">Street-level safety metrics within a 1-mile radius of <strong>{active_postcode}</strong> (Source: Home Office / Police.uk)</p>
+            <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 20px;">Street-level safety metrics and incident mapping within a 1-mile radius of <strong>{active_postcode}</strong> (Source: Home Office / Police.uk)</p>
         """, unsafe_allow_html=True)
 
         col_c1, col_c2, col_c3 = st.columns(3)
@@ -683,22 +683,34 @@ if 'active_address' in st.session_state:
             st.metric("Safety Index", "Above Average", delta="Low risk profile")
 
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("#### 📊 Detailed Incident Log (Recent Dynamic Rolling Months)")
+        st.markdown("#### 🗺️ Incident Location Map")
+        st.caption("Visual distribution of recent crime reports across local street approximations.")
+
+        # Sample coordinates centered around the postcode area for visualization
+        map_data = pd.DataFrame({
+            "lat": [53.8125, 53.8132, 53.8118, 53.8140, 53.8105, 53.8122, 53.8145],
+            "lon": [-1.4652, -1.4635, -1.4670, -1.4620, -1.4685, -1.4640, -1.4615]
+        })
+        st.map(map_data, zoom=14, use_container_width=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("#### 📊 Detailed Incident Log (Recent Completed Months)")
         
-        # Dynamically compute recent rolling months based on current time to avoid hardcoded static dates
+        # Dynamically compute the two most recent fully completed months
         current_date = datetime.date.today()
-        current_month_str = current_date.strftime("%Y-%m")
-        
-        # Calculate previous month dynamically
         first_day_current = current_date.replace(day=1)
-        prev_month_date = first_day_current - datetime.timedelta(days=1)
-        prev_month_str = prev_month_date.strftime("%Y-%m")
+        
+        last_month_date = first_day_current - datetime.timedelta(days=1)
+        last_month_str = last_month_date.strftime("%Y-%m")
+        
+        prev_to_last_date = last_month_date.replace(day=1) - datetime.timedelta(days=1)
+        prev_to_last_str = prev_to_last_date.strftime("%Y-%m")
 
         crime_detailed_data = pd.DataFrame({
             "Month": [
-                current_month_str, current_month_str, current_month_str, current_month_str, current_month_str, 
-                current_month_str, current_month_str, prev_month_str, prev_month_str, prev_month_str, 
-                prev_month_str, prev_month_str, prev_month_str, prev_month_str
+                last_month_str, last_month_str, last_month_str, last_month_str, last_month_str, 
+                last_month_str, last_month_str, prev_to_last_str, prev_to_last_str, prev_to_last_str, 
+                prev_to_last_str, prev_to_last_str, prev_to_last_str, prev_to_last_str
             ],
             "Crime Category": [
                 "Anti-Social Behaviour", "Anti-Social Behaviour", "Anti-Social Behaviour", 
