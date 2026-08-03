@@ -671,7 +671,7 @@ if 'active_address' in st.session_state:
         # Step back 2 full months to ensure the window ends on a fully locked and completed month (e.g., June if viewed in August)
         current_date = datetime.date.today()
         first_day_current = current_date.replace(day=1)
-        last_completed_month = first_day_current - datetime.timedelta(days=28) # Safely steps into prior month
+        last_completed_month = first_day_current - datetime.timedelta(days=28)
         last_completed_month = last_completed_month.replace(day=1) - datetime.timedelta(days=1)
         
         # Go back 12 months from that fully locked month
@@ -690,7 +690,7 @@ if 'active_address' in st.session_state:
         with col_c1:
             st.metric("12-Month Total Incidents", "168 crimes", delta="-4% vs regional avg")
         with col_c2:
-            st.metric("Primary Crime Type", "Anti-Social Behaviour", delta="38% of local reports")
+            st.metric("Primary Crime Category", "Anti-Social Behaviour", delta="38% of local reports")
         with col_c3:
             st.metric("Safety Index", "Above Average", delta="Low risk profile")
 
@@ -705,18 +705,23 @@ if 'active_address' in st.session_state:
         st.map(map_data, zoom=14, use_container_width=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown(f"#### 📊 Detailed Incident Log ({window_start_str} – {window_end_str} Completed Window)")
+        st.markdown(f"#### 📊 12-Month Incident Log ({window_start_str} – {window_end_str})")
         
-        # Dynamically generate trailing 12-month sample data ending on the locked month
+        # Interactive View Switcher
+        view_mode = st.radio(
+            "Group Data By:", 
+            ["Crime Category", "Month", "Flat List (All Incidents)"], 
+            horizontal=True
+        )
+
+        # Generate 12 months descending (newest locked month first)
         months_list = []
         curr = last_completed_month
         for _ in range(12):
             months_list.append(curr.strftime("%Y-%m"))
             curr = (curr.replace(day=1) - datetime.timedelta(days=1))
-        months_list.reverse()
 
         crime_detailed_data = pd.DataFrame({
-            "Crime Ref": [f"CR-2026-{1000 + i}" for i in range(12)],
             "Month": months_list,
             "Crime Category": [
                 "Anti-Social Behaviour", "Violence and Sexual Offences", "Public Order", 
@@ -738,7 +743,23 @@ if 'active_address' in st.session_state:
             ]
         })
         
-        st.dataframe(crime_detailed_data, use_container_width=True, hide_index=True)
+        if view_mode == "Crime Category":
+            categories = crime_detailed_data["Crime Category"].unique()
+            for cat in categories:
+                cat_df = crime_detailed_data[crime_detailed_data["Crime Category"] == cat].drop(columns=["Crime Category"])
+                with st.expander(f"📁 {cat} ({len(cat_df)} incidents)", expanded=False):
+                    st.dataframe(cat_df, use_container_width=True, hide_index=True)
+
+        elif view_mode == "Month":
+            unique_months = crime_detailed_data["Month"].unique()
+            for m in unique_months:
+                month_df = crime_detailed_data[crime_detailed_data["Month"] == m].drop(columns=["Month"])
+                with st.expander(f"📅 {m} ({len(month_df)} incidents)", expanded=False):
+                    st.dataframe(month_df, use_container_width=True, hide_index=True)
+
+        else:
+            st.dataframe(crime_detailed_data, use_container_width=True, hide_index=True)
+
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ===================================================================
