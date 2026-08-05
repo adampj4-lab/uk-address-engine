@@ -136,7 +136,7 @@ def haversine_distance(lat1, lon1, lat2, lon2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return R * c
 
-# DYNAMIC DATES CALCULATOR (Zero Hardcoding)
+# DYNAMIC DATES CALCULATOR
 today_date = datetime.date.today()
 curr_year = today_date.year
 
@@ -163,7 +163,7 @@ PROVIDER_PRICE_RISES = {
 }
 
 # -------------------------------------------------------------------
-# REAL GEOLOCATION & LIVE FUEL PRICE API
+# REAL GEOLOCATION & OPTION A LIVE FUEL API
 # -------------------------------------------------------------------
 @st.cache_data(ttl=86400)
 def get_postcode_lat_lon(postcode):
@@ -177,46 +177,25 @@ def get_postcode_lat_lon(postcode):
             return result.get("latitude"), result.get("longitude")
     except Exception as e:
         print(f"Geolocation Error: {e}")
-    return 53.8010, -1.4150
+    return None, None
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=1800)  # Refresh live feed every 30 mins
 def fetch_real_fuel_prices(lat, lon, radius_miles):
-    """Fetches live fuel prices from UK Open Fuel Data scheme via public aggregator"""
-    # Direct query to Open Data Fuel API endpoint
-    url = f"https://ukfuelprices.co.uk/api/v1/stations/near?lat={lat}&lng={lon}&radius={radius_miles}"
+    """Option A: Queries live UK forecourt prices via public Open Data Aggregator"""
+    if lat is None or lon is None:
+        return []
+        
+    url = f"https://api.ukpumpdata.co.uk/v1/nearby?lat={lat}&lng={lon}&radius={radius_miles}"
     try:
-        res = requests.get(url, timeout=6)
+        res = requests.get(url, timeout=5)
         if res.status_code == 200:
-            return res.json().get("stations", [])
+            data = res.json()
+            if "stations" in data and len(data["stations"]) > 0:
+                return data["stations"]
     except Exception as e:
         print(f"Live Fuel API Exception: {e}")
-    
-    # High-accuracy dynamic fallback generator anchored to real postcode lat/lon
-    brands = ["Tesco", "Sainsbury's", "BP", "Shell", "Asda", "Morrisons"]
-    stations = []
-    offsets = [
-        (0.008, -0.012, 136.9, 141.9, 144.9, 150.9),
-        (-0.015, 0.018, 137.9, 142.9, 145.9, 151.9),
-        (0.022, 0.005, 141.9, 146.9, 149.9, 156.9),
-        (-0.005, -0.025, 140.9, 145.9, 148.9, 155.9)
-    ]
-    for idx, (lat_off, lon_off, e10, b7, e5, prem) in enumerate(offsets):
-        b = brands[idx % len(brands)]
-        stations.append({
-            "brand": b,
-            "site_name": f"{b} Express Service Station",
-            "address": f"Local Access Route ({round(haversine_distance(lat, lon, lat + lat_off, lon + lon_off), 1)} mi)",
-            "lat": lat + lat_off,
-            "lon": lon + lon_off,
-            "prices": {
-                "Unleaded (E10)": e10,
-                "Standard Diesel (B7)": b7,
-                "Super Unleaded (E5)": e5,
-                "Premium Diesel": prem
-            },
-            "updated": "Today, Live Open Data Feed"
-        })
-    return stations
+        
+    return []
 
 # -------------------------------------------------------------------
 # LAND REGISTRY PARSERS
@@ -620,7 +599,7 @@ if 'active_address' in st.session_state:
                 st.markdown(card_html, unsafe_allow_html=True)
 
     # ===================================================================
-    # TAB 2: PETROL & DIESEL PRICES (LIVE UK OPEN DATA)
+    # TAB 2: PETROL & DIESEL PRICES (OPTION A LIVE OPEN DATA)
     # ===================================================================
     with tab_fuel:
         st.subheader("⛽ Local Fuel Price Optimizer")
@@ -636,21 +615,23 @@ if 'active_address' in st.session_state:
         with col_f_ctrl3:
             sort_by = st.radio("Sort Stations By:", ["Cheapest Price", "Nearest Distance"], horizontal=True, key="fuel_sort_radio")
 
-        # Fetch live/dynamic forecourts via Open Data integration
+        # Fetch live forecourts via Option A Public Aggregator
         raw_stations = fetch_real_fuel_prices(origin_lat, origin_lon, radius_miles)
 
         nearby_stations = []
-        for station in raw_stations:
-            dist = haversine_distance(origin_lat, origin_lon, station["lat"], station["lon"])
-            if dist <= radius_miles:
-                st_data = station.copy()
-                st_data["distance"] = round(dist, 2)
-                st_data["current_price"] = station["prices"].get(fuel_type, 0.0)
-                nearby_stations.append(st_data)
+        if raw_stations:
+            for station in raw_stations:
+                dist = haversine_distance(origin_lat, origin_lon, float(station.get("lat", 0)), float(station.get("lon", 0)))
+                if dist <= radius_miles:
+                    st_data = station.copy()
+                    st_data["distance"] = round(dist, 2)
+                    st_data["current_price"] = station.get("prices", {}).get(fuel_type, 0.0)
+                    if st_data["current_price"] > 0:
+                        nearby_stations.append(st_data)
 
-        if sort_by == "Cheapest Price":
+        if sort_by == "Cheapest Price" and nearby_stations:
             nearby_stations = sorted(nearby_stations, key=lambda x: x["current_price"])
-        else:
+        elif nearby_stations:
             nearby_stations = sorted(nearby_stations, key=lambda x: x["distance"])
 
         if nearby_stations:
@@ -660,14 +641,14 @@ if 'active_address' in st.session_state:
 
             col_fm1, col_fm2, col_fm3 = st.columns(3)
             with col_fm1:
-                st.metric(f"Cheapest {fuel_type}", f"{cheapest['current_price']:.1f}p / L", delta=f"{cheapest['brand']} ({cheapest['distance']} mi)")
+                st.metric(f"Cheapest {fuel_type}", f"{cheapest['current_price']:.1f}p / L", delta=f"{cheapest.get('brand', 'Forecourt')} ({cheapest['distance']} mi)")
             with col_fm2:
                 st.metric("Area Average Price", f"{avg_p:.1f}p / L", delta=f"{len(nearby_stations)} forecourts within {radius_miles} mi")
             with col_fm3:
-                st.metric("Nearest Forecourt", f"{nearest['distance']} mi", delta=f"{nearest['brand']} ({nearest['current_price']:.1f}p/L)")
+                st.metric("Nearest Forecourt", f"{nearest['distance']} mi", delta=f"{nearest.get('brand', 'Forecourt')} ({nearest['current_price']:.1f}p/L)")
 
             st.divider()
-            st.markdown(f"#### 📍 Active Forecourts within {radius_miles} Miles ({fuel_type})")
+            st.markdown(f"#### 📍 Live Verified Forecourts within {radius_miles} Miles ({fuel_type})")
 
             for s in nearby_stations:
                 is_cheapest = (s["current_price"] == cheapest["current_price"])
@@ -679,10 +660,10 @@ if 'active_address' in st.session_state:
                 <div class="sales-card">
                     <div>
                         <div style="font-size: 1.05rem; font-weight: 800; color: #0f172a;">
-                            {s['site_name']} {badge_cheapest}
+                            {s.get('site_name', 'Petrol Station')} {badge_cheapest}
                         </div>
-                        <div style="font-size: 0.85rem; color: #64748b; margin-top: 4px;">📍 {s['address']} ({s['distance']} miles from property)</div>
-                        <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 2px;">⏱️ Updated: {s['updated']}</div>
+                        <div style="font-size: 0.85rem; color: #64748b; margin-top: 4px;">📍 {s.get('address', 'Local Area')} ({s['distance']} miles from property)</div>
+                        <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 2px;">⏱️ Live Open Data Feed</div>
                     </div>
                     <div style="text-align: right;">
                         <div style="font-size: 1.6rem; font-weight: 900; color: #16a34a;">{s['current_price']:.1f}p <span style="font-size: 0.8rem; font-weight: 600; color: #64748b;">/ litre</span></div>
@@ -691,7 +672,7 @@ if 'active_address' in st.session_state:
                 </div>
                 """, unsafe_allow_html=True)
         else:
-            st.warning(f"No petrol stations found within a {radius_miles}-mile radius of {active_postcode}. Try expanding your search radius.")
+            st.warning(f"No live verified fuel stations returned within a {radius_miles}-mile radius of {active_postcode}. Try expanding your search radius.")
 
     # ===================================================================
     # TAB 3: TV, SPORTS & STREAMING AUDIT
@@ -825,7 +806,6 @@ if 'active_address' in st.session_state:
         first_day_current = today_date.replace(day=1)
         last_completed_month = first_day_current - datetime.timedelta(days=28)
         last_completed_month = last_completed_month.replace(day=1) - datetime.timedelta(days=1)
-        start_window_date = last_completed_month.replace(year=last_completed_month.year - 1)
         
         months_list = [(last_completed_month - datetime.timedelta(days=30*i)).strftime("%Y-%m") for i in range(12)]
 
