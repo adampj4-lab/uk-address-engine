@@ -127,7 +127,7 @@ def natural_sort_key(s):
 
 def haversine_distance(lat1, lon1, lat2, lon2):
     """Calculate the Great Circle distance between two points in miles."""
-    R = 3958.8  # Earth radius in miles
+    R = 3958.8
     dLat = math.radians(lat2 - lat1)
     dLon = math.radians(lon2 - lon1)
     a = (math.sin(dLat / 2) ** 2 +
@@ -163,7 +163,7 @@ PROVIDER_PRICE_RISES = {
 }
 
 # -------------------------------------------------------------------
-# REAL GEOLOCATION & OPTION A LIVE FUEL API
+# REAL GEOLOCATION & REAL UK CMA OPEN FUEL DATA PARSER
 # -------------------------------------------------------------------
 @st.cache_data(ttl=86400)
 def get_postcode_lat_lon(postcode):
@@ -179,23 +179,63 @@ def get_postcode_lat_lon(postcode):
         print(f"Geolocation Error: {e}")
     return None, None
 
-@st.cache_data(ttl=1800)  # Refresh live feed every 30 mins
+@st.cache_data(ttl=3600)
 def fetch_real_fuel_prices(lat, lon, radius_miles):
-    """Option A: Queries live UK forecourt prices via public Open Data Aggregator"""
+    """Queries live UK forecourt feeds published directly under CMA Open Data Scheme"""
     if lat is None or lon is None:
         return []
-        
-    url = f"https://api.ukpumpdata.co.uk/v1/nearby?lat={lat}&lng={lon}&radius={radius_miles}"
-    try:
-        res = requests.get(url, timeout=5)
-        if res.status_code == 200:
-            data = res.json()
-            if "stations" in data and len(data["stations"]) > 0:
-                return data["stations"]
-    except Exception as e:
-        print(f"Live Fuel API Exception: {e}")
-        
-    return []
+
+    # Retailer Open Data JSON Endpoints (Official Public Scheme)
+    open_data_urls = [
+        ("Morrisons", "https://vmdirect.morrisons.com/petrol/prices.json"),
+        ("Sainsbury's", "https://api.sainsburys.co.uk/v1/exports/fuel/prices_new.json"),
+        ("Motor Fuel Group (MFG)", "https://fuel.motorfuelgroup.com/fuel_prices.json")
+    ]
+    
+    nearby_stations = []
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) HouseholdOptimisationEngine/1.0"}
+
+    for brand_name, url in open_data_urls:
+        try:
+            res = requests.get(url, headers=headers, timeout=4)
+            if res.status_code == 200:
+                data = res.json()
+                stations = data.get("stations", [])
+                
+                for st_item in stations:
+                    s_lat = float(st_item.get("location", {}).get("latitude", 0) or st_item.get("latitude", 0))
+                    s_lon = float(st_item.get("location", {}).get("longitude", 0) or st_item.get("longitude", 0))
+                    
+                    if s_lat == 0 or s_lon == 0:
+                        continue
+                        
+                    dist = haversine_distance(lat, lon, s_lat, s_lon)
+                    if dist <= radius_miles:
+                        raw_prices = st_item.get("prices", {})
+                        
+                        # Map fuel keys to standard labels
+                        parsed_prices = {
+                            "Unleaded (E10)": float(raw_prices.get("E10", 0) or raw_prices.get("unleaded", 0)),
+                            "Standard Diesel (B7)": float(raw_prices.get("B7", 0) or raw_prices.get("diesel", 0)),
+                            "Super Unleaded (E5)": float(raw_prices.get("E5", 0) or raw_prices.get("super_unleaded", 0)),
+                            "Premium Diesel": float(raw_prices.get("SDV", 0) or raw_prices.get("premium_diesel", 0))
+                        }
+                        
+                        nearby_stations.append({
+                            "brand": st_item.get("brand", brand_name),
+                            "site_name": st_item.get("site_name") or f"{brand_name} {st_item.get('address', '')[:20]}",
+                            "address": st_item.get("address", "Local Station"),
+                            "postcode": st_item.get("postcode", ""),
+                            "lat": s_lat,
+                            "lon": s_lon,
+                            "distance": round(dist, 2),
+                            "prices": parsed_prices,
+                            "updated": st_item.get("last_updated", "Live Feed")
+                        })
+        except Exception as e:
+            print(f"Error fetching open data for {brand_name}: {e}")
+
+    return nearby_stations
 
 # -------------------------------------------------------------------
 # LAND REGISTRY PARSERS
@@ -599,7 +639,7 @@ if 'active_address' in st.session_state:
                 st.markdown(card_html, unsafe_allow_html=True)
 
     # ===================================================================
-    # TAB 2: PETROL & DIESEL PRICES (OPTION A LIVE OPEN DATA)
+    # TAB 2: PETROL & DIESEL PRICES (REAL CMA OPEN DATA SCHEME)
     # ===================================================================
     with tab_fuel:
         st.subheader("⛽ Local Fuel Price Optimizer")
@@ -611,23 +651,20 @@ if 'active_address' in st.session_state:
         with col_f_ctrl1:
             fuel_type = st.selectbox("Fuel Grade:", ["Unleaded (E10)", "Standard Diesel (B7)", "Super Unleaded (E5)", "Premium Diesel"], key="fuel_grade_select")
         with col_f_ctrl2:
-            radius_miles = st.slider("Search Radius (Miles):", min_value=1.0, max_value=10.0, value=3.0, step=0.5, key="fuel_radius_slider")
+            radius_miles = st.slider("Search Radius (Miles):", min_value=1.0, max_value=15.0, value=5.0, step=0.5, key="fuel_radius_slider")
         with col_f_ctrl3:
             sort_by = st.radio("Sort Stations By:", ["Cheapest Price", "Nearest Distance"], horizontal=True, key="fuel_sort_radio")
 
-        # Fetch live forecourts via Option A Public Aggregator
+        # Fetch live forecourts via real UK Open Data Scheme
         raw_stations = fetch_real_fuel_prices(origin_lat, origin_lon, radius_miles)
 
         nearby_stations = []
         if raw_stations:
             for station in raw_stations:
-                dist = haversine_distance(origin_lat, origin_lon, float(station.get("lat", 0)), float(station.get("lon", 0)))
-                if dist <= radius_miles:
-                    st_data = station.copy()
-                    st_data["distance"] = round(dist, 2)
-                    st_data["current_price"] = station.get("prices", {}).get(fuel_type, 0.0)
-                    if st_data["current_price"] > 0:
-                        nearby_stations.append(st_data)
+                st_data = station.copy()
+                st_data["current_price"] = station.get("prices", {}).get(fuel_type, 0.0)
+                if st_data["current_price"] > 0:
+                    nearby_stations.append(st_data)
 
         if sort_by == "Cheapest Price" and nearby_stations:
             nearby_stations = sorted(nearby_stations, key=lambda x: x["current_price"])
@@ -663,7 +700,7 @@ if 'active_address' in st.session_state:
                             {s.get('site_name', 'Petrol Station')} {badge_cheapest}
                         </div>
                         <div style="font-size: 0.85rem; color: #64748b; margin-top: 4px;">📍 {s.get('address', 'Local Area')} ({s['distance']} miles from property)</div>
-                        <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 2px;">⏱️ Live Open Data Feed</div>
+                        <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 2px;">⏱️ Source: UK CMA Open Data Feed ({s.get('updated', 'Live')})</div>
                     </div>
                     <div style="text-align: right;">
                         <div style="font-size: 1.6rem; font-weight: 900; color: #16a34a;">{s['current_price']:.1f}p <span style="font-size: 0.8rem; font-weight: 600; color: #64748b;">/ litre</span></div>
@@ -672,7 +709,7 @@ if 'active_address' in st.session_state:
                 </div>
                 """, unsafe_allow_html=True)
         else:
-            st.warning(f"No live verified fuel stations returned within a {radius_miles}-mile radius of {active_postcode}. Try expanding your search radius.")
+            st.warning(f"No live verified CMA open data petrol stations returned within a {radius_miles}-mile radius of {active_postcode}. Try expanding your search radius slider.")
 
     # ===================================================================
     # TAB 3: TV, SPORTS & STREAMING AUDIT
